@@ -1,0 +1,143 @@
+.map-view-container {
+  background: var(--white);
+  border: var(--border-thick) solid var(--black);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+}
+
+.map-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.markers-count {
+  font-weight: 600;
+  color: var(--dark-gray);
+}
+
+.add-marker-form {
+  background: var(--gray);
+  border: 2px solid var(--black);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.add-marker-form input {
+  padding: var(--spacing-sm);
+  border: 2px solid var(--black);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+}
+
+.btn-sm {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.9rem;
+}
+
+.map-visualization {
+  min-height: 400px;
+  background: var(--gray);
+  border: 2px solid var(--black);
+  border-radius: var(--border-radius);
+  position: relative;
+  overflow: hidden;
+}
+
+.map-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: var(--dark-gray);
+}
+
+.map-placeholder svg {
+  margin-bottom: var(--spacing-md);
+  color: var(--cyan);
+}
+
+.map-note {
+  font-size: 0.85rem;
+  margin-top: var(--spacing-sm);
+  color: var(--dark-gray);
+  font-style: italic;
+}
+
+.markers-list {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  background: var(--white);
+  border: 2px solid var(--black);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  max-width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.markers-list h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  margin-bottom: var(--spacing-sm);
+}
+
+.marker-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--gray);
+  gap: var(--spacing-sm);
+}
+
+.marker-item:last-child {
+  border-bottom: none;
+}
+
+.marker-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1;
+}
+
+.marker-info span:first-of-type {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.marker-coords {
+  font-size: 0.75rem;
+  color: var(--dark-gray);
+}
+
+.delete-marker {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+}
+
+.delete-marker:hover {
+  background: var(--gray);
+}
+

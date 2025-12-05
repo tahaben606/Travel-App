@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import '../styles/landing.css'
 
@@ -178,15 +179,7 @@ const LandingPage = () => {
               journal.
             </p>
 
-            <div className="hero-actions">
-              <motion.button className="btn btn-primary btn-lg" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                ⚡ Start Your Story
-              </motion.button>
-
-              <motion.button className="btn btn-outline btn-lg" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                🧭 Explore Stories
-              </motion.button>
-            </div>
+            {/* Signup / Login buttons removed per request */}
 
             <div className="hero-stats">
               {[
