@@ -12,6 +12,9 @@ import Dashboard from './pages/Dashboard';
 import StoryForm from './pages/StoryForm';
 import StoryDetail from './pages/StoryDetail';
 import PackingLists from './pages/PackingLists';
+import Features from './pages/Features';
+import Pricing from './pages/Pricing';
+import About from './pages/About';
 
 import './App.css';
 import './styles/global.css';
@@ -28,6 +31,9 @@ function App() {
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Auth />} />
               <Route path="/signup" element={<Auth />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/about" element={<About />} />
               <Route
                 path="/dashboard"
                 element={

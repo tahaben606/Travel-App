@@ -1,9 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
-import { motion, AnimatePresence } from "framer-motion"
-import '../styles/landing.css'
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiArrowRight, FiCheck, FiMapPin, FiCalendar, FiUsers } from 'react-icons/fi';
+import { FaQuoteLeft, FaStar, FaCompass, FaBookOpen, FaSuitcase, FaUserCircle } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
+import PillNav from '../components/PillNav';
+import '../styles/landing.css';
+
+// Logo placeholder
+const logo = 'https://via.placeholder.com/40x40/00BCD4/FFFFFF?text=TJ';
 
 const LandingPage = () => {
   const [activeTab, setActiveTab] = useState("features")
@@ -12,6 +19,8 @@ const LandingPage = () => {
   const [email, setEmail] = useState("")
   const [emailSubmitted, setEmailSubmitted] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -118,8 +127,31 @@ const LandingPage = () => {
     },
   ]
 
+  // Handle login button click
+  const handleLoginClick = () => navigate('/login');
+  const handleSignupClick = () => navigate('/signup');
+
+  // Handle navigation to sections
+  const scrollToSection = (e, sectionId) => {
+    e.preventDefault();
+    const element = document.querySelector(sectionId);
+    if (element) {
+      window.scrollTo({
+        top: element.offsetTop - 80, // Account for fixed header
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
     <div className="landing-page">
+      <PillNav
+        logo={logo}
+        logoAlt="Travel Journal Logo"
+        className={isScrolled ? 'scrolled' : ''}
+        onLoginClick={handleLoginClick}
+        onSignupClick={handleSignupClick}
+      />
       {/* Animated Background Elements */}
       <div className="bg-elements">
         {[...Array(8)].map((_, i) => (
