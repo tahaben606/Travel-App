@@ -5,10 +5,15 @@ import { motion } from 'framer-motion';
 import '../styles/header.css';
 
 const Header = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, authHeader } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    // try to notify backend (optional) then clear local session
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(authHeader ? authHeader() : {}) },
+    }).catch(() => {});
     logout();
     navigate('/');
   };

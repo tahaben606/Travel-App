@@ -2,15 +2,13 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
-import { MapPin, Mail, Lock, User } from 'lucide-react';
+import { MapPin, Mail, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import '../styles/auth.css';
 
-const Signup = () => {
-  const [nom, setNom] = useState('');
+const Login = () => {
   const [email, setEmail] = useState('');
-  const [motDePasse, setMotDePasse] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -18,35 +16,16 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
-    if (!nom || !email || !motDePasse || !confirmPassword) {
+    if (!email || !password) {
       toast.error('Please fill in all fields');
-      return;
-    }
-
-    if (motDePasse.length < 6) {
-      toast.error('Password must be at least 6 characters');
-      return;
-    }
-
-    if (motDePasse !== confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error('Please enter a valid email address');
       return;
     }
 
     setLoading(true);
 
     try {
-      // Use relative URL to avoid CORS issues during development
-      const apiUrl = '/api/auth/register';
-      console.log('Attempting to register at:', apiUrl);
+      const apiUrl = 'http://localhost:8000/api/auth/login';
+      console.log('Logging in with:', { email, apiUrl });
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -54,36 +33,41 @@ const Signup = () => {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
+        credentials: 'include', // Important for Laravel Sanctum/session cookies
         body: JSON.stringify({
-          nom: nom,
           email: email,
-          mot_de_passe: motDePasse,
-          mot_de_passe_confirmation: confirmPassword,
+          mot_de_passe: password, // Match your database column name
         }),
       });
 
       console.log('Response status:', response.status);
       
-      // Try to parse the response even if it's an error
+      // Get response as text first for debugging
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+      
       let data;
       try {
-        data = await response.json();
-        console.log('Response data:', data);
+        data = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse JSON:', parseError);
+        console.error('JSON parse error:', parseError);
         throw new Error('Server returned invalid response');
       }
 
       if (!response.ok) {
+        console.error('Login API error:', data);
+        
         // Handle Laravel validation errors
         if (data.errors) {
-          const firstError = Object.values(data.errors)[0][0];
-          throw new Error(firstError);
+          const errors = Object.values(data.errors).flat();
+          throw new Error(errors[0] || 'Validation failed');
         }
-        throw new Error(data.message || `Registration failed (${response.status})`);
+        throw new Error(data.message || `Login failed (${response.status})`);
       }
 
-      // Your Laravel should return the created client
+      console.log('Login successful!', data);
+      
+      // Your Laravel should return client data and token
       const client = data.client || data.data;
       const token = data.token || data.access_token;
       
@@ -92,24 +76,33 @@ const Signup = () => {
         id_client: client.id_client,
         nom: client.nom,
         email: client.email,
-        date_inscription: client.date_inscription || new Date().toISOString(),
+        date_inscription: client.date_inscription,
       };
 
-      // Store in context and localStorage
+      // Store in localStorage for persistence
+      if (token) {
+        localStorage.setItem('auth_token', token);
+      }
+      localStorage.setItem('user_data', JSON.stringify(userData));
+      
+      // Update auth context
       login(userData, token);
       
-      toast.success(`Account created successfully! Welcome, ${client.nom}!`);
+      toast.success(`Welcome back, ${client.nom}!`);
       navigate('/dashboard');
+      
     } catch (error) {
-      console.error('Full signup error:', error);
+      console.error('Full login error:', error);
       
       // More specific error messages
       if (error.message.includes('Failed to fetch')) {
         toast.error('Cannot connect to server. Make sure Laravel is running on port 8000.');
       } else if (error.message.includes('NetworkError')) {
-        toast.error('Network error. Check your connection and Laravel CORS configuration.');
+        toast.error('Network error. Check your connection.');
+      } else if (error.message.includes('Invalid credentials')) {
+        toast.error('Invalid email or password. Please try again.');
       } else {
-        toast.error(error.message || 'Registration failed. Please try again.');
+        toast.error(error.message || 'Login failed. Please check your credentials.');
       }
     } finally {
       setLoading(false);
@@ -127,30 +120,15 @@ const Signup = () => {
         >
           <div className="auth-header">
             <MapPin size={32} />
-            <h1>Start Your Journey</h1>
-            <p>Create an account to document your adventures</p>
+            <h1>Welcome Back</h1>
+            <p>Sign in to continue your travel journey</p>
           </div>
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
               <label>
-                <User size={18} />
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={nom}
-                onChange={(e) => setNom(e.target.value)}
-                placeholder="Your name"
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>
                 <Mail size={18} />
-                Email Address
+                Email
               </label>
               <input
                 type="email"
@@ -169,28 +147,10 @@ const Signup = () => {
               </label>
               <input
                 type="password"
-                value={motDePasse}
-                onChange={(e) => setMotDePasse(e.target.value)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                minLength={6}
-                disabled={loading}
-              />
-              <small className="password-hint">Minimum 6 characters</small>
-            </div>
-
-            <div className="form-group">
-              <label>
-                <Lock size={18} />
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={6}
                 disabled={loading}
               />
             </div>
@@ -202,15 +162,15 @@ const Signup = () => {
               whileTap={{ scale: 0.98 }}
               disabled={loading}
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading ? 'Signing In...' : 'Sign In'}
             </motion.button>
           </form>
 
           <div className="auth-footer">
             <p className="auth-switch">
-              Already have an account?{' '}
-              <Link to="/login" className="auth-link">
-                Sign in here
+              Don't have an account?{' '}
+              <Link to="/signup" className="auth-link">
+                Sign up here
               </Link>
             </p>
             <Link to="/" className="back-link">
@@ -223,4 +183,4 @@ const Signup = () => {
   );
 };
 
-export default Signup;
+export default Login;

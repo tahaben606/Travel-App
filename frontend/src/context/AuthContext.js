@@ -1,47 +1,74 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+// In context/AuthContext.js
+import { createContext, useState, useContext, useEffect } from 'react';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('travel_user');
-    if (storedUser) {
+    // Check localStorage for existing auth data (for page refresh)
+    const storedToken = localStorage.getItem('auth_token');
+    const storedUser = localStorage.getItem('user_data');
+    
+    if (storedToken && storedUser) {
+      setToken(storedToken);
       setUser(JSON.parse(storedUser));
     }
-    setLoading(false);
   }, []);
 
-  const login = (userData) => {
+  const login = (userData, authToken) => {
     setUser(userData);
-    localStorage.setItem('travel_user', JSON.stringify(userData));
+    setToken(authToken);
+    
+    // Store in localStorage for persistence
+    if (authToken) {
+      localStorage.setItem('auth_token', authToken);
+    }
+    localStorage.setItem('user_data', JSON.stringify(userData));
   };
 
   const logout = () => {
+    // Call Laravel logout endpoint if needed
+    if (token) {
+      fetch('http://localhost:8000/api/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      }).catch(console.error);
+    }
+    
     setUser(null);
-    localStorage.removeItem('travel_user');
-    localStorage.removeItem('travel_stories');
+    setToken(null);
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+  };
+
+  // For making authenticated requests to Laravel
+  const authFetch = async (url, options = {}) => {
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    return fetch(url, { ...options, headers });
   };
 
   const value = {
     user,
+    token,
     login,
     logout,
-    loading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !!token,
+    authFetch, // Helper for authenticated requests
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
