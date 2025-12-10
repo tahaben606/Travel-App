@@ -1,135 +1,101 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    // POST /api/auth/signup
+    public function signup(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'nom' => 'required|string|max:100',
-            'email' => 'required|string|email|max:150|unique:clients',
-            'mot_de_passe' => 'required|string|min:6|confirmed',
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'password' => 'required|string|min:6',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
+        // Check if email exists
+        $existing = DB::selectOne('SELECT id, email FROM users WHERE email = ?', [$data['email']]);
+        if ($existing) {
+            return response()->json(['message' => 'Email already taken'], 422);
         }
 
-        try {
-            // Create client
-            $client = Client::create([
-                'nom' => $request->nom,
-                'email' => $request->email,
-                'mot_de_passe' => Hash::make($request->mot_de_passe),
-            ]);
+        $token = Str::random(60);
+        $now = now();
+        $hashed = Hash::make($data['password']);
 
-            // Create Sanctum token
-            $token = $client->createToken('auth_token')->plainTextToken;
+        // Insert user via raw SQL
+        DB::insert(
+            'INSERT INTO users (name, email, password, remember_token, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+            [$data['name'], $data['email'], $hashed, $token, $now, $now]
+        );
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Registration successful',
-                'client' => [
-                    'id_client' => $client->id_client,
-                    'nom' => $client->nom,
-                    'email' => $client->email,
-                    'date_inscription' => $client->date_inscription,
-                ],
-                'token' => $token,
-                'token_type' => 'Bearer',
-            ], 201);
+        $user = DB::selectOne('SELECT id, name, email, remember_token AS token FROM users WHERE email = ?', [$data['email']]);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Registration failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            'token' => $user->token,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+        ], 201);
     }
 
+    // POST /api/auth/login
     public function login(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'email' => 'required|email',
-        'mot_de_passe' => 'required',
-    ]);
+    {
+        $data = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
 
-    if ($validator->fails()) {
+        $user = DB::selectOne('SELECT * FROM users WHERE email = ?', [$data['email']]);
+        if (! $user || ! Hash::check($data['password'], $user->password)) {
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+
+        $token = Str::random(60);
+        DB::update('UPDATE users SET remember_token = ?, updated_at = ? WHERE id = ?', [$token, now(), $user->id]);
+
         return response()->json([
-            'success' => false,
-            'errors' => $validator->errors()
-        ], 422);
+            'token' => $token,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+        ]);
     }
 
-    try {
-        // Find client by email
-        $client = Client::where('email', $request->email)->first();
-
-        if (!$client) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Client not found. Please check your email.',
-            ], 404);
+    // POST /api/auth/logout
+    public function logout(Request $request)
+    {
+        $auth = $request->header('Authorization', '');
+        if (str_starts_with($auth, 'Bearer ')) {
+            $token = substr($auth, 7);
+            DB::update('UPDATE users SET remember_token = NULL, updated_at = ? WHERE remember_token = ?', [now(), $token]);
         }
+        return response()->json(['message' => 'Logged out']);
+    }
 
-        // Check password - since we have custom password field name
-        if (!Hash::check($request->mot_de_passe, $client->mot_de_passe)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid password. Please try again.',
-            ], 401);
+    // GET /api/auth/me
+    public function me(Request $request)
+    {
+        $auth = $request->header('Authorization', '');
+        if (! str_starts_with($auth, 'Bearer ')) {
+            return response()->json(['message' => 'Unauthorized'], 401);
         }
-
-        // Create token if using Sanctum
-        if (method_exists($client, 'createToken')) {
-            $token = $client->createToken('auth_token')->plainTextToken;
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Login successful',
-                'client' => [
-                    'id_client' => $client->id_client,
-                    'nom' => $client->nom,
-                    'email' => $client->email,
-                    'date_inscription' => $client->date_inscription,
-                ],
-                'token' => $token,
-                'token_type' => 'Bearer',
-            ]);
-        } else {
-            // If not using Sanctum, just return client data
-            return response()->json([
-                'success' => true,
-                'message' => 'Login successful',
-                'client' => [
-                    'id_client' => $client->id_client,
-                    'nom' => $client->nom,
-                    'email' => $client->email,
-                    'date_inscription' => $client->date_inscription,
-                ],
-            ]);
+        $token = substr($auth, 7);
+        $user = DB::selectOne('SELECT id, name, email FROM users WHERE remember_token = ?', [$token]);
+        if (! $user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
         }
-
-    } catch (\Exception $e) {
-        \Log::error('Login error: ' . $e->getMessage());
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Login failed. Please try again.',
-            'error' => $e->getMessage()
-        ], 500);
+        return response()->json(['user' => $user]);
     }
 }
-}
+

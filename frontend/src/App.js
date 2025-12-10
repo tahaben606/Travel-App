@@ -7,19 +7,19 @@ import Header from './components/Header';
 
 // Pages
 import Landing from './pages/landing';
-import Signup from './pages/Signup';
-
+import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import StoryForm from './pages/StoryForm';
 import StoryDetail from './pages/StoryDetail';
+import StoriesList from './pages/StoriesList';
 import PackingLists from './pages/PackingLists';
 import Features from './pages/Features';
 import Pricing from './pages/Pricing';
 import About from './pages/About';
 
+// Styles
 import './App.css';
 import './styles/global.css';
-import Login from './pages/Login';
 
 function App() {
   return (
@@ -31,8 +31,8 @@ function App() {
             <Header />
             <Routes>
               <Route path="/" element={<Landing />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
+              <Route path="/login" element={<Auth />} />
+              <Route path="/signup" element={<Auth />} />
               <Route path="/features" element={<Features />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/about" element={<About />} />
@@ -43,6 +43,15 @@ function App() {
                     <Dashboard />
                   </ProtectedRoute>
                 }
+              />
+              {/* Stories Routes */}
+              <Route 
+                path="/stories" 
+                element={
+                  <ProtectedRoute>
+                    <StoriesList />
+                  </ProtectedRoute>
+                } 
               />
               <Route
                 path="/stories/new"
@@ -64,7 +73,7 @@ function App() {
                 path="/stories/:id/edit"
                 element={
                   <ProtectedRoute>
-                    <StoryForm />
+                    <StoryForm editMode={true} />
                   </ProtectedRoute>
                 }
               />

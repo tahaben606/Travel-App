@@ -15,7 +15,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast.error('Please fill in all fields');
       return;
@@ -24,54 +24,29 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const apiUrl = 'http://localhost:8000/api/auth/login';
-      console.log('Logging in with:', { email, apiUrl });
-      
-      const response = await fetch(apiUrl, {
+      const response = await fetch('http://localhost:8000/api/auth/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
-        credentials: 'include', // Important for Laravel Sanctum/session cookies
         body: JSON.stringify({
           email: email,
-          mot_de_passe: password, // Match your database column name
+          mot_de_passe: password,
         }),
       });
 
-      console.log('Response status:', response.status);
-      
-      // Get response as text first for debugging
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-      
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        throw new Error('Server returned invalid response');
-      }
+      const data = await response.json();
+      console.log("API Response:", data);
 
       if (!response.ok) {
-        console.error('Login API error:', data);
-        
-        // Handle Laravel validation errors
-        if (data.errors) {
-          const errors = Object.values(data.errors).flat();
-          throw new Error(errors[0] || 'Validation failed');
-        }
-        throw new Error(data.message || `Login failed (${response.status})`);
+        toast.error(data.message || "Login failed");
+        return;
       }
 
-      console.log('Login successful!', data);
-      
-      // Your Laravel should return client data and token
-      const client = data.client || data.data;
-      const token = data.token || data.access_token;
-      
-      // Prepare user data matching your database structure
+      const client = data.client;
+      const token = data.token;
+
       const userData = {
         id_client: client.id_client,
         nom: client.nom,
@@ -79,31 +54,17 @@ const Login = () => {
         date_inscription: client.date_inscription,
       };
 
-      // Store in localStorage for persistence
-      if (token) {
-        localStorage.setItem('auth_token', token);
-      }
+      localStorage.setItem('auth_token', token);
       localStorage.setItem('user_data', JSON.stringify(userData));
-      
-      // Update auth context
+
       login(userData, token);
-      
+
       toast.success(`Welcome back, ${client.nom}!`);
       navigate('/dashboard');
-      
+
     } catch (error) {
-      console.error('Full login error:', error);
-      
-      // More specific error messages
-      if (error.message.includes('Failed to fetch')) {
-        toast.error('Cannot connect to server. Make sure Laravel is running on port 8000.');
-      } else if (error.message.includes('NetworkError')) {
-        toast.error('Network error. Check your connection.');
-      } else if (error.message.includes('Invalid credentials')) {
-        toast.error('Invalid email or password. Please try again.');
-      } else {
-        toast.error(error.message || 'Login failed. Please check your credentials.');
-      }
+      console.error("Login Error:", error);
+      toast.error("Server error. Check backend connection.");
     } finally {
       setLoading(false);
     }
@@ -127,14 +88,13 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
               <label>
-                <Mail size={18} />
-                Email
+                <Mail size={18} /> Email
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
+                placeholder="test@example.com"
                 required
                 disabled={loading}
               />
@@ -142,14 +102,13 @@ const Login = () => {
 
             <div className="form-group">
               <label>
-                <Lock size={18} />
-                Password
+                <Lock size={18} /> Password
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Your password"
                 required
                 disabled={loading}
               />
@@ -168,14 +127,9 @@ const Login = () => {
 
           <div className="auth-footer">
             <p className="auth-switch">
-              Don't have an account?{' '}
-              <Link to="/signup" className="auth-link">
-                Sign up here
-              </Link>
+              Don't have an account? <Link to="/signup" className="auth-link">Sign up here</Link>
             </p>
-            <Link to="/" className="back-link">
-              ← Back to home
-            </Link>
+            <Link to="/" className="back-link">← Back to home</Link>
           </div>
         </motion.div>
       </div>

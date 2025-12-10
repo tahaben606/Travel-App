@@ -1,75 +1,143 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { MapPin, LogOut, User, Home, BookOpen, Luggage } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { MapPin, LogOut, User, Home, BookOpen, Luggage, Plus, Menu, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import '../styles/header.css';
 
 const Header = () => {
   const { user, logout, isAuthenticated, authHeader } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  const handleLogout = () => {
-    // try to notify backend (optional) then clear local session
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(authHeader ? authHeader() : {}) },
-    }).catch(() => {});
-    logout();
-    navigate('/');
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location]);
+
+  // Add scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(authHeader ? authHeader() : {}) },
+      });
+    } finally {
+      logout();
+      navigate('/');
+    }
   };
 
   if (!isAuthenticated) {
     return null;
   }
 
-  return (
-    <header className="app-header">
-      <div className="header-container">
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Link to="/dashboard" className="logo">
-            <MapPin size={28} />
-            <span>Travel Story</span>
-          </Link>
-        </motion.div>
+  // Check active route for nav highlighting
+  const isActive = (path) => location.pathname.startsWith(path);
 
-        <nav className="header-nav">
-          <motion.div whileHover={{ y: -2 }} whileTap={{ y: 0 }}>
-            <Link to="/dashboard" className="nav-link">
-              <Home size={20} />
-              <span>Dashboard</span>
-            </Link>
-          </motion.div>
-          <motion.div whileHover={{ y: -2 }} whileTap={{ y: 0 }}>
-            <Link to="/dashboard" className="nav-link">
-              <BookOpen size={20} />
-              <span>Stories</span>
-            </Link>
-          </motion.div>
-          <motion.div whileHover={{ y: -2 }} whileTap={{ y: 0 }}>
-            <Link to="/packing" className="nav-link">
-              <Luggage size={20} />
-              <span>Packing</span>
-            </Link>
-          </motion.div>
+  return (
+    <header className={`app-header ${scrolled ? 'scrolled' : ''}`}>
+      <div className="header-container">
+        <Link to="/dashboard" className="logo">
+          <MapPin size={24} />
+          <span>Travel Stories</span>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="header-nav desktop-nav">
+          <Link to="/dashboard" className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}>
+            <Home size={18} />
+            <span>Dashboard</span>
+          </Link>
+          <Link to="/stories" className={`nav-link ${isActive('/stories') ? 'active' : ''}`}>
+            <BookOpen size={18} />
+            <span>Stories</span>
+          </Link>
+          <Link to="/stories/create" className="create-story-btn">
+            <Plus size={18} />
+            <span>New Story</span>
+          </Link>
         </nav>
 
-        <div className="header-user">
-          <motion.div 
-            className="user-info"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
+        {/* Mobile menu button */}
+        <button 
+          className="mobile-menu-btn"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div 
+              className="mobile-menu"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="mobile-nav">
+                <Link to="/dashboard" className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}>
+                  <Home size={18} />
+                  <span>Dashboard</span>
+                </Link>
+                <Link to="/stories" className={`nav-link ${isActive('/stories') ? 'active' : ''}`}>
+                  <BookOpen size={18} />
+                  <span>Stories</span>
+                </Link>
+                <Link to="/stories/create" className="nav-link">
+                  <Plus size={18} />
+                  <span>New Story</span>
+                </Link>
+              </div>
+              
+              <div className="mobile-user-menu">
+                <div className="user-info">
+                  <div className="user-avatar">
+                    <User size={20} />
+                  </div>
+                  <div>
+                    <div className="user-name">{user?.name || 'User'}</div>
+                    <div className="user-email">{user?.email}</div>
+                  </div>
+                </div>
+                <button onClick={handleLogout} className="logout-btn">
+                  <LogOut size={18} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Desktop User Menu */}
+        <div className="user-menu">
+          <div className="user-avatar">
             <User size={20} />
-            <span>{user?.name || 'User'}</span>
-          </motion.div>
-          <motion.button 
-            onClick={handleLogout} 
-            className="logout-btn"
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <LogOut size={18} />
-          </motion.button>
+          </div>
+          <div className="dropdown-menu">
+            <div className="dropdown-item">
+              <User size={16} />
+              <span>Profile</span>
+            </div>
+            <div className="dropdown-divider"></div>
+            <button onClick={handleLogout} className="dropdown-item">
+              <LogOut size={16} />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>
