@@ -42,23 +42,33 @@
 .ig-post {
     background: #fff;
     border-radius: 12px;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.2s ease;
     overflow: hidden;
-    transform: scale(0.75);
-    margin-bottom: -160px;
-    margin-top: -100px;
+    display: flex;
+    flex-direction: column;
+}
+
+.ig-post.clickable-card {
+    cursor: pointer;
 }
 
 .ig-post:hover {
-    /* transform: translateY(-2px); */
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.ig-post:hover .story-image {
+    transform: scale(1.02);
 }
 
 /* Post Header */
 .ig-post-header {
-    padding: 14px 16px;
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    min-height: 56px;
 }
 
 .ig-user {
@@ -87,6 +97,7 @@
     font-weight: 600;
     color: #262626;
     margin: 0 0 2px 0;
+    word-break: break-word;
 }
 
 .ig-location {
@@ -96,11 +107,13 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    word-break: break-word;
 }
 
 .ig-location::before {
     content: "📍";
     font-size: 10px;
+    flex-shrink: 0;
 }
 
 /* Image */
@@ -110,13 +123,15 @@
     background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
     overflow: hidden;
     position: relative;
+    min-height: 300px;
 }
 
-.ig-image-wrapper img {
+.story-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
     transition: transform 0.3s ease;
+    background: #f0f0f0;
 }
 
 .ig-post:hover .ig-image-wrapper img {
@@ -127,16 +142,18 @@
 .ig-actions {
     display: flex;
     gap: 16px;
-    padding: 12px 16px 8px;
+    padding: 8px 16px 12px;
     align-items: center;
+    min-height: 44px;
+    border-top: 1px solid #eee;
 }
 
-.ig-actions button {
+.action-btn {
     background: none;
     border: none;
     font-size: 24px;
     cursor: pointer;
-    padding: 4px;
+    padding: 4px 8px;
     transition: transform 0.2s ease;
     color: #262626;
     display: flex;
@@ -144,11 +161,11 @@
     justify-content: center;
 }
 
-.ig-actions button:hover {
+.action-btn:hover {
     transform: scale(1.15);
 }
 
-.ig-actions button:active {
+.action-btn:active {
     transform: scale(0.95);
 }
 
@@ -158,15 +175,8 @@
 }
 
 @keyframes likeAnimation {
-
-    0%,
-    100% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.2);
-    }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
 }
 
 .saved {
@@ -175,13 +185,17 @@
 
 /* Caption */
 .ig-caption {
-    padding: 0 16px 16px;
+    padding: 12px 16px;
     font-size: 14px;
     line-height: 1.5;
     color: #262626;
+    min-height: 40px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    flex: 1;
 }
 
-.ig-caption span {
+.username-bold {
     font-weight: 600;
     margin-right: 4px;
 }
@@ -725,11 +739,11 @@ html {
 .selected-filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin: 15px 0;
-    padding: 10px;
+    gap: 4px;
+    margin: 6px 0;
+    padding: 6px;
     background: #f8f9fa;
-    border-radius: 8px;
+    border-radius: 4px;
 }
 
 .filter-chip {
@@ -774,4 +788,507 @@ html {
 .filter-section h4 {
     margin-bottom: 12px;
     color: #333;
+}
+
+.filter-block {
+    margin-bottom: 10px;
+}
+
+.filter-block label {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.search-box input {
+    border: none;
+    outline: none;
+    width: 100%;
+    font-size: 12px;
+}
+
+.filter-list {
+    max-height: 70px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+.filter-item {
+    padding: 4px 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.filter-item:hover {
+    background: #f5f5f5;
+}
+
+.filter-item.active {
+    background: #0095f6;
+    color: white;
+}
+
+.reset-btn {
+    width: 100%;
+    padding: 8px;
+    border: none;
+    background: #eee;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.reset-btn:hover {
+    background: #ddd;
+}
+.ig-page {
+    display: flex;
+    max-width: 1200px;
+    margin: auto;
+    gap: 30px;
+}
+
+.side-filter {
+    width: 260px;
+    position: sticky;
+    top: 80px;
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 12px;
+    height: fit-content;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ig-feed {
+    flex: 1;
+    max-width: 600px;
+    margin-top: 50px;
+}
+
+.ig-post {
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.ig-post-clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ig-post:hover .ig-post-clickable img {
+    transform: scale(1.02);
+}
+
+.ig-post img {
+    width: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.ig-post-header {
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.ig-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ig-username {
+    font-size: 14px;
+    font-weight: 600;
+    color: #262626;
+    margin: 0 0 2px 0;
+}
+
+.ig-location {
+    font-size: 12px;
+    color: #8e8e8e;
+    margin: 0;
+}
+
+.ig-caption {
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #262626;
+}
+
+.ig-caption span {
+    font-weight: 600;
+}
+
+.ig-actions {
+    display: flex;
+    gap: 16px;
+    padding: 8px 16px;
+    border-top: 1px solid #eee;
+}
+
+.ig-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    color: #262626;
+    padding: 4px;
+    transition: all 0.2s ease;
+}
+
+.ig-actions button:hover {
+    transform: scale(1.1);
+}
+
+.ig-actions button:active {
+    transform: scale(0.95);
+}
+
+.ig-actions .liked {
+    color: #ed4956;
+}
+
+.ig-actions .saved {
+    color: #262626;
+}
+
+/* No Stories State */
+.no-stories {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    margin: 40px 0;
+    min-height: 300px;
+}
+
+.no-stories-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.no-stories-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #262626;
+    margin: 0 0 10px 0;
+}
+
+.no-stories-text {
+    font-size: 14px;
+    color: #8e8e8e;
+    margin: 0 0 20px 0;
+    max-width: 300px;
+    line-height: 1.5;
+}
+
+.reset-btn-inline {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.reset-btn-inline:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* Loading State */
+.ig-loading {
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 16px;
+    color: #8e8e8e;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+/* Filter Header */
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.filter-header h3 {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    color: #333;
+    font-size: 14px;
+}
+
+/* Filter Sections */
+.applied-filters-section,
+.temp-filters-section {
+    margin-bottom: 8px;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #3897f0;
+}
+
+.temp-filters-section {
+    border-left-color: #ff9800;
+    background: #fff8e1;
+}
+
+.applied-filters-section h4,
+.temp-filters-section h4 {
+    margin-top: 0;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: #666;
+    font-weight: 600;
+}
+
+/* Filter Chips */
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    margin: 2px;
+    border-radius: 16px;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.filter-chip.applied {
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    color: #1976d2;
+}
+
+.filter-chip.temp {
+    background: #fff3e0;
+    border: 1px solid #ffcc80;
+    color: #f57c00;
+}
+
+.filter-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.remove-filter {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    margin-left: 6px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.remove-filter:hover {
+    opacity: 1;
+}
+
+/* Clear All Button */
+.clear-all-btn {
+    width: 100%;
+    background: none;
+    border: 1px solid #ddd;
+    color: #666;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: all 0.2s;
+}
+
+.clear-all-btn:hover {
+    background: #f5f5f5;
+    border-color: #999;
+    color: #333;
+}
+
+/* Filter Actions */
+.filter-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+}
+
+.reset-btn,
+.apply-btn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.reset-btn {
+    background: #f5f5f5;
+    color: #666;
+    border: 1px solid #ddd;
+}
+
+.reset-btn:hover:not(:disabled) {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.apply-btn {
+    background: #3897f0;
+    color: white;
+}
+
+.apply-btn:hover:not(:disabled) {
+    background: #2878c9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(56, 151, 240, 0.3);
+}
+
+.reset-btn:disabled,
+.apply-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Refresh Indicator */
+.refresh-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    background: rgba(56, 151, 240, 0.1);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    color: #3897f0;
+    font-weight: 500;
+    animation: fadeIn 0.3s ease;
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(56, 151, 240, 0.3);
+    border-top-color: #3897f0;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Reset Button Small */
+.reset-btn-small {
+    background: none;
+    border: 1px solid #ddd;
+    color: #666;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    transition: all 0.2s;
+}
+
+.reset-btn-small:hover {
+    background: #f5f5f5;
+    border-color: #999;
+    color: #333;
+}
+
+/* Loading States */
+.ig-loading {
+    text-align: center;
+    padding: 30px;
+    color: #666;
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .filter-actions {
+        flex-direction: column;
+    }
+
+    .filter-chip {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
 }

@@ -1,650 +1,647 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import axios from "axios"
 import { useNavigate } from "react-router-dom"
-import { FaHeart, FaRegHeart, FaBookmark, FaRegBookmark, FaChevronDown, FaTimes, FaSearch } from "react-icons/fa"
+import {
+  FaHeart,
+  FaRegHeart,
+  FaBookmark,
+  FaRegBookmark,
+  FaSearch,
+  FaFilter,
+  FaTimes
+} from "react-icons/fa"
 import { useAuth } from "../context/AuthContext"
+import locationsData from "../data/locations.json"
 import "./StoriesList.css"
+
+const MAX_IN_MEMORY = 40
 
 export default function StoriesList() {
   const navigate = useNavigate()
-  const { token, user, isAuthenticated } = useAuth()
+  const { token, isAuthenticated } = useAuth()
+
+  /* =========================
+     DATA STATES
+  ========================== */
   const [stories, setStories] = useState([])
-  const [filteredStories, setFilteredStories] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+
   const [likedStories, setLikedStories] = useState(new Set())
   const [savedStories, setSavedStories] = useState(new Set())
-  const [showFilterModal, setShowFilterModal] = useState(false)
+
+  /* =========================
+     FILTER STATES
+  ========================== */
   const [selectedCountries, setSelectedCountries] = useState(new Set())
   const [selectedCities, setSelectedCities] = useState(new Set())
   const [selectedTypes, setSelectedTypes] = useState(new Set())
-  const [availableCountries, setAvailableCountries] = useState([])
-  const [availableCities, setAvailableCities] = useState([])
-  const [availableTypes, setAvailableTypes] = useState([])
   
-  // Search states for dropdowns
+  // Temp filter states (not applied yet)
+  const [tempCountries, setTempCountries] = useState(new Set())
+  const [tempCities, setTempCities] = useState(new Set())
+  const [tempTypes, setTempTypes] = useState(new Set())
+
   const [countrySearch, setCountrySearch] = useState("")
   const [citySearch, setCitySearch] = useState("")
   const [typeSearch, setTypeSearch] = useState("")
-  
-  // Dropdown visibility states
-  const [showCountryDropdown, setShowCountryDropdown] = useState(false)
-  const [showCityDropdown, setShowCityDropdown] = useState(false)
-  const [showTypeDropdown, setShowTypeDropdown] = useState(false)
 
+  const observer = useRef(null)
+
+  /* =========================
+     AVAILABLE FILTER DATA
+  ========================== */
+  const availableCountries = useMemo(
+    () => locationsData.locations.map(l => l.c),
+    []
+  )
+
+  const availableCities = useMemo(
+    () =>
+      [
+        ...new Set(
+          locationsData.locations.flatMap(l => l.ct || [])
+        )
+      ],
+    []
+  )
+
+  const availableTypes = locationsData.types
+
+  /* =========================
+     INITIALIZE TEMP FILTERS
+  ========================== */
   useEffect(() => {
-    console.log("Auth state updated:", { token, user, isAuthenticated })
-  }, [token, user, isAuthenticated])
+    // Initialize temp filters with current applied filters
+    setTempCountries(selectedCountries)
+    setTempCities(selectedCities)
+    setTempTypes(selectedTypes)
+  }, [])
 
-  // Fetch stories from API
-  useEffect(() => {
-    fetchStories(currentPage)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage])
+  /* =========================
+     LIKE / SAVE HANDLERS
+  ========================== */
+  const handleLike = async (e, id, liked) => {
+    e.stopPropagation()
+    if (!token) return alert("Login required")
 
-  // Apply filters when stories or filters change
-  useEffect(() => {
-    applyFilters()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stories, selectedCountries, selectedCities, selectedTypes])
-
-  const fetchStories = async (page) => {
     try {
-      setLoading(true)
-      const response = await axios.get(`http://localhost:8000/api/stories?page=${page}`, {
-        headers: { Accept: "application/json" },
-      })
+      await axios.post(
+        `http://localhost:8000/api/stories/${id}/${liked ? "unlike" : "like"}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
 
-      const storiesData = response.data.stories.data || []
-      setStories(storiesData)
-      fetchLocations()
-      setTotalPages(response.data.stories.last_page || 1)
+      setLikedStories(prev => {
+        const s = new Set(prev)
+        liked ? s.delete(id) : s.add(id)
+        return s
+      })
     } catch (err) {
-      console.error("Error fetching stories:", err)
-      setStories([])
-    } finally {
-      setLoading(false)
+      console.error("Error liking story:", err)
     }
   }
 
-  const fetchLocations = async () => {
+  const handleSave = async (e, id, saved) => {
+    e.stopPropagation()
+    if (!token) return alert("Login required")
+
     try {
-      // Import locations from local JSON file
-      const locationsData = await import("../data/locations.json")
-      
-      if (locationsData.locations) {
-        // Extract countries from hierarchical data
-        const countries = locationsData.locations.map(loc => loc.c)
-        // Collect all unique cities
-        const allCities = []
-        locationsData.locations.forEach(loc => {
-          allCities.push(...(loc.ct || []))
-        })
-        const uniqueCities = [...new Set(allCities)]
-        
-        setAvailableCountries(countries)
-        setAvailableCities(uniqueCities)
-        setAvailableTypes(locationsData.types || [])
-      }
+      await axios.post(
+        `http://localhost:8000/api/stories/${id}/${saved ? "unsave" : "save"}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      setSavedStories(prev => {
+        const s = new Set(prev)
+        saved ? s.delete(id) : s.add(id)
+        return s
+      })
     } catch (err) {
-      console.error("Error fetching locations:", err)
+      console.error("Error saving story:", err)
     }
+  }
+
+  /* =========================
+     FETCH STORIES
+  ========================== */
+  const fetchStories = useCallback(async (isRefresh = false) => {
+    if (loading && !isRefresh) return
+    setLoading(true)
+    
+    try {
+      const res = await axios.get(
+        `http://localhost:8000/api/stories?page=${isRefresh ? 1 : page}`
+      )
+
+      const newStories = res.data.stories.data || []
+
+      if (isRefresh) {
+        setStories(newStories)
+        setPage(2) // Reset to page 2 since we loaded page 1
+      } else {
+        setStories(prev => {
+          const merged = [...prev, ...newStories]
+          // Keep unique stories by id
+          const uniqueStories = merged.reduce((acc, current) => {
+            const x = acc.find(item => item.id === current.id)
+            if (!x) {
+              return acc.concat([current])
+            } else {
+              return acc
+            }
+          }, [])
+          return uniqueStories.slice(-MAX_IN_MEMORY)
+        })
+        setPage(p => p + 1)
+      }
+
+      setHasMore((isRefresh ? 1 : page) < res.data.stories.last_page)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+      if (isRefresh) {
+        setRefreshing(false)
+      }
+    }
+  }, [loading, page])
+
+  // Initial fetch
+  useEffect(() => {
+    fetchStories(true)
+  }, [])
+
+  /* =========================
+     INFINITE SCROLL
+  ========================== */
+  const lastStoryRef = useCallback(
+    node => {
+      if (loading) return
+      if (observer.current) observer.current.disconnect()
+
+      observer.current = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && hasMore) {
+          fetchStories()
+        }
+      })
+
+      if (node) observer.current.observe(node)
+    },
+    [loading, hasMore, fetchStories]
+  )
+
+  /* =========================
+     USER INTERACTIONS
+  ========================== */
+  useEffect(() => {
+    if (!isAuthenticated || !token) return
+
+    Promise.all([
+      axios.get("http://localhost:8000/api/profile/liked-stories", {
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      axios.get("http://localhost:8000/api/profile/saved-stories", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    ]).then(([liked, saved]) => {
+      setLikedStories(new Set(liked.data.stories?.data?.map(s => s.id) || []))
+      setSavedStories(new Set(saved.data.stories?.data?.map(s => s.id) || []))
+    })
+  }, [token, isAuthenticated])
+
+  /* =========================
+     FILTER LOGIC
+  ========================== */
+  const filteredStories = useMemo(() => {
+    if (selectedCountries.size === 0 && selectedCities.size === 0 && selectedTypes.size === 0) {
+      return stories
+    }
+
+    return stories.filter(story => {
+      let countryMatch = true
+      let cityMatch = true
+      let typeMatch = true
+
+      // Country Filter
+      if (selectedCountries.size > 0) {
+        countryMatch = false
+        if (story.location) {
+          const locationParts = story.location.split(",").map(part => part.trim())
+          const country = locationParts[locationParts.length - 1]
+          countryMatch = selectedCountries.has(country)
+        }
+      }
+
+      // City Filter
+      if (selectedCities.size > 0) {
+        cityMatch = false
+        if (story.location) {
+          const locationParts = story.location.split(",").map(part => part.trim())
+          const city = locationParts[0]
+          cityMatch = selectedCities.has(city)
+        }
+      }
+
+      // Type Filter
+      if (selectedTypes.size > 0) {
+        typeMatch = false
+        const storyType = (story.type || "other").toLowerCase()
+        selectedTypes.forEach(selectedType => {
+          if (storyType === selectedType.toLowerCase()) {
+            typeMatch = true
+          }
+        })
+      }
+
+      if (selectedCountries.size > 0 && selectedCities.size > 0) {
+        return (countryMatch || cityMatch) && typeMatch
+      }
+      
+      return countryMatch && cityMatch && typeMatch
+    })
+  }, [stories, selectedCountries, selectedCities, selectedTypes])
+
+  /* =========================
+     FILTER HELPER FUNCTIONS
+  ========================== */
+  const toggleTempCountry = (country) => {
+    const newCountries = new Set(tempCountries)
+    if (newCountries.has(country)) {
+      newCountries.delete(country)
+    } else {
+      newCountries.add(country)
+    }
+    setTempCountries(newCountries)
+  }
+
+  const toggleTempCity = (city) => {
+    const newCities = new Set(tempCities)
+    if (newCities.has(city)) {
+      newCities.delete(city)
+    } else {
+      newCities.add(city)
+    }
+    setTempCities(newCities)
+  }
+
+  const toggleTempType = (type) => {
+    const newTypes = new Set(tempTypes)
+    if (newTypes.has(type)) {
+      newTypes.delete(type)
+    } else {
+      newTypes.add(type)
+    }
+    setTempTypes(newTypes)
   }
 
   const applyFilters = () => {
-    let filtered = stories
-
-    if (selectedCountries.size > 0 || selectedCities.size > 0 || selectedTypes.size > 0) {
-      filtered = stories.filter((story) => {
-        // Location filter
-        let locationMatch = true
-        if (selectedCountries.size > 0 || selectedCities.size > 0) {
-          if (!story.location) return false
-
-          const parts = story.location.split(",").map((part) => part.trim())
-          const city = parts.length >= 2 ? parts[0] : ""
-          const country = parts[parts.length - 1]
-
-          const countryMatch = selectedCountries.size === 0 || selectedCountries.has(country)
-          const cityMatch = selectedCities.size === 0 || selectedCities.has(city)
-
-          locationMatch = countryMatch && cityMatch
-        }
-
-        // Type filter
-        let typeMatch = true
-        if (selectedTypes.size > 0) {
-          typeMatch = selectedTypes.has(story.type || "other")
-        }
-
-        return locationMatch && typeMatch
-      })
-    }
-
-    setFilteredStories(filtered)
+    // Apply temp filters to actual filters
+    setSelectedCountries(tempCountries)
+    setSelectedCities(tempCities)
+    setSelectedTypes(tempTypes)
+    
+    // Reset pagination and refresh stories
+    setRefreshing(true)
+    fetchStories(true)
   }
 
-  // Filter functions for search
-  const filteredCountries = availableCountries.filter(country =>
-    country.toLowerCase().includes(countrySearch.toLowerCase())
-  )
-
-  const filteredCities = availableCities.filter(city =>
-    city.toLowerCase().includes(citySearch.toLowerCase())
-  )
-
-  const filteredTypes = availableTypes.filter(type =>
-    type.toLowerCase().includes(typeSearch.toLowerCase())
-  )
-
-  // Fetch user's liked and saved stories
-  const fetchUserInteractions = useCallback(async () => {
-    if (!token) return
-
-    try {
-      const [likedRes, savedRes] = await Promise.all([
-        axios.get("http://localhost:8000/api/profile/liked-stories", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }),
-        axios.get("http://localhost:8000/api/profile/saved-stories", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }),
-      ])
-
-      const likedIds = new Set((likedRes.data.stories?.data || []).map((s) => s.id))
-      const savedIds = new Set((savedRes.data.stories?.data || []).map((s) => s.id))
-      setLikedStories(likedIds)
-      setSavedStories(savedIds)
-      console.log("User interactions loaded:", { likedIds: Array.from(likedIds), savedIds: Array.from(savedIds) })
-    } catch (err) {
-      console.error("Error fetching user interactions:", err.response?.data || err.message)
-    }
-  }, [token])
-
-  useEffect(() => {
-    if (isAuthenticated && token) {
-      fetchUserInteractions()
-    }
-  }, [token, fetchUserInteractions, isAuthenticated])
-
-  const handleLike = async (storyId, isLiked) => {
-    console.log("Like button clicked:", { storyId, isLiked, token, user, isAuthenticated })
-
-    if (!token) {
-      alert("Please log in to like stories")
-      return
-    }
-
-    try {
-      const endpoint = isLiked
-        ? `http://localhost:8000/api/stories/${storyId}/unlike`
-        : `http://localhost:8000/api/stories/${storyId}/like`
-
-      console.log("Sending like request to:", endpoint)
-
-      const response = await axios.post(endpoint, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-      })
-
-      console.log("Like response:", response.status, response.data)
-
-      if (response.status === 201 || response.status === 200) {
-        const newLiked = new Set(likedStories)
-        isLiked ? newLiked.delete(storyId) : newLiked.add(storyId)
-        setLikedStories(newLiked)
-        console.log("Like state updated:", { isLiked: !isLiked })
-      }
-    } catch (err) {
-      console.error("Error toggling like:", err.response?.data || err.message)
-      alert("Failed to like story. Please try again.")
-    }
+  const resetFilters = () => {
+    setTempCountries(new Set())
+    setTempCities(new Set())
+    setTempTypes(new Set())
+    setCountrySearch("")
+    setCitySearch("")
+    setTypeSearch("")
   }
 
-  const handleSave = async (storyId, isSaved) => {
-    console.log("Save button clicked:", { storyId, isSaved, token, user, isAuthenticated })
-
-    if (!token) {
-      alert("Please log in to save stories")
-      return
-    }
-
-    try {
-      const endpoint = isSaved
-        ? `http://localhost:8000/api/stories/${storyId}/unsave`
-        : `http://localhost:8000/api/stories/${storyId}/save`
-
-      console.log("Sending save request to:", endpoint)
-
-      const response = await axios.post(endpoint, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-      })
-
-      console.log("Save response:", response.status, response.data)
-
-      if (response.status === 201 || response.status === 200) {
-        const newSaved = new Set(savedStories)
-        isSaved ? newSaved.delete(storyId) : newSaved.add(storyId)
-        setSavedStories(newSaved)
-        console.log("Save state updated:", { isSaved: !isSaved })
-      }
-    } catch (err) {
-      console.error("Error toggling save:", err.response?.data || err.message)
-      alert("Failed to save story. Please try again.")
-    }
+  const clearAllAppliedFilters = () => {
+    setSelectedCountries(new Set())
+    setSelectedCities(new Set())
+    setSelectedTypes(new Set())
+    resetFilters()
+    setRefreshing(true)
+    fetchStories(true)
   }
 
-  // Helper function to remove a selected filter
-  const removeCountry = (country) => {
-    const newCountries = new Set(selectedCountries)
-    newCountries.delete(country)
-    setSelectedCountries(newCountries)
-  }
-
-  const removeCity = (city) => {
-    const newCities = new Set(selectedCities)
-    newCities.delete(city)
-    setSelectedCities(newCities)
-  }
-
-  const removeType = (type) => {
-    const newTypes = new Set(selectedTypes)
-    newTypes.delete(type)
-    setSelectedTypes(newTypes)
-  }
-
-  if (loading) {
-    return (
-      <div className="stories-list-container loading">
-        <div className="spinner">Loading travel stories...</div>
-      </div>
-    )
-  }
-
-  const displayStories = selectedCountries.size > 0 || selectedCities.size > 0 || selectedTypes.size > 0 ? filteredStories : stories
-
-  if (displayStories.length === 0) {
-    return (
-      <div className="stories-list-container empty">
-        <div className="empty-state">
-          <p>📍 No stories available{selectedCountries.size > 0 || selectedCities.size > 0 || selectedTypes.size > 0 ? " with selected filters" : ""}</p>
-          {(selectedCountries.size > 0 || selectedCities.size > 0 || selectedTypes.size > 0) && (
-            <button 
-              onClick={() => {
-                setSelectedCountries(new Set())
-                setSelectedCities(new Set())
-                setSelectedTypes(new Set())
-              }}
-              className="reset-filter-btn"
-            >
-              Reset Filters
+  /* =========================
+     RENDER
+  ========================== */
+  return (
+    <div className="ig-page">
+      {/* SIDEBAR */}
+      <aside className="side-filter">
+        <div className="filter-header">
+          <h3>
+            <FaFilter style={{ marginRight: '8px' }} />
+            Filters
+          </h3>
+          {(tempCountries.size > 0 || tempCities.size > 0 || tempTypes.size > 0) && (
+            <button className="reset-btn-small" onClick={resetFilters}>
+              <FaTimes /> Clear
             </button>
           )}
-          {selectedCountries.size === 0 && selectedCities.size === 0 && selectedTypes.size === 0 && (
-            <p>Be the first to share your travel adventure!</p>
-          )}
         </div>
-      </div>
-    )
-  }
 
-  return (
-    <div className="ig-container">
-      {/* Filter Button */}
-      <button 
-        className="filter-toggle-btn"
-        onClick={() => setShowFilterModal(!showFilterModal)}
-        title="Filter by country and city"
-      >
-        🔍 Filter
+        {/* Applied Filters Display */}
         {(selectedCountries.size > 0 || selectedCities.size > 0 || selectedTypes.size > 0) && (
-          <span className="filter-badge">{selectedCountries.size + selectedCities.size + selectedTypes.size}</span>
+          <div className="applied-filters-section">
+            <h4>Applied Filters:</h4>
+            <div className="selected-filters">
+              {Array.from(selectedCountries).map(country => (
+                <span key={country} className="filter-chip applied">
+                  {country}
+                  <button 
+                    onClick={() => {
+                      const newSet = new Set(selectedCountries)
+                      newSet.delete(country)
+                      setSelectedCountries(newSet)
+                      setTempCountries(newSet)
+                      setRefreshing(true)
+                      fetchStories(true)
+                    }} 
+                    className="remove-filter"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              {Array.from(selectedCities).map(city => (
+                <span key={city} className="filter-chip applied">
+                  {city}
+                  <button 
+                    onClick={() => {
+                      const newSet = new Set(selectedCities)
+                      newSet.delete(city)
+                      setSelectedCities(newSet)
+                      setTempCities(newSet)
+                      setRefreshing(true)
+                      fetchStories(true)
+                    }} 
+                    className="remove-filter"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              {Array.from(selectedTypes).map(type => (
+                <span key={type} className="filter-chip applied">
+                  {type}
+                  <button 
+                    onClick={() => {
+                      const newSet = new Set(selectedTypes)
+                      newSet.delete(type)
+                      setSelectedTypes(newSet)
+                      setTempTypes(newSet)
+                      setRefreshing(true)
+                      fetchStories(true)
+                    }} 
+                    className="remove-filter"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <button 
+              className="clear-all-btn" 
+              onClick={clearAllAppliedFilters}
+            >
+              Clear All Applied Filters
+            </button>
+          </div>
         )}
-      </button>
 
-      {/* Selected Filters Display */}
-      {(selectedCountries.size > 0 || selectedCities.size > 0 || selectedTypes.size > 0) && (
-        <div className="selected-filters">
-          {Array.from(selectedCountries).map(country => (
-            <span key={country} className="filter-chip">
-              {country}
-              <button onClick={() => removeCountry(country)} className="remove-filter">
-                <FaTimes />
-              </button>
-            </span>
-          ))}
-          {Array.from(selectedCities).map(city => (
-            <span key={city} className="filter-chip">
-              {city}
-              <button onClick={() => removeCity(city)} className="remove-filter">
-                <FaTimes />
-              </button>
-            </span>
-          ))}
-          {Array.from(selectedTypes).map(type => (
-            <span key={type} className="filter-chip">
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-              <button onClick={() => removeType(type)} className="remove-filter">
-                <FaTimes />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Filter Modal with Search Dropdowns */}
-      {showFilterModal && (
-        <div className="filter-modal">
-          <div className="filter-modal-content">
-            <div className="filter-modal-header">
-              <h3>Filter Stories</h3>
-              <button 
-                className="close-filter-btn"
-                onClick={() => setShowFilterModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Countries Search Dropdown */}
-            <div className="filter-section">
-              <label className="filter-label">Countries</label>
-              <div className="search-dropdown-container">
-                <div className="search-input-wrapper">
-                  <FaSearch className="search-icon" />
-                  <input
-                    type="text"
-                    placeholder="Search countries..."
-                    value={countrySearch}
-                    onChange={(e) => setCountrySearch(e.target.value)}
-                    onFocus={() => setShowCountryDropdown(true)}
-                    className="search-dropdown-input"
-                  />
-                  {countrySearch && (
-                    <button 
-                      onClick={() => setCountrySearch("")}
-                      className="clear-search-btn"
-                    >
-                      <FaTimes />
-                    </button>
-                  )}
-                  <button 
-                    className="dropdown-toggle"
-                    onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                  >
-                    <FaChevronDown />
+        {/* Temp Filters Display */}
+        {(tempCountries.size > 0 || tempCities.size > 0 || tempTypes.size > 0) && (
+          <div className="temp-filters-section">
+            <h4>Selected (Not Applied):</h4>
+            <div className="selected-filters">
+              {Array.from(tempCountries).map(country => (
+                <span key={country} className="filter-chip temp">
+                  {country}
+                  <button onClick={() => toggleTempCountry(country)} className="remove-filter">
+                    ×
                   </button>
-                </div>
-                
-                {showCountryDropdown && (
-                  <div className="dropdown-list">
-                    {filteredCountries.length > 0 ? (
-                      filteredCountries.map((country) => (
-                        <div
-                          key={country}
-                          className={`dropdown-item ${selectedCountries.has(country) ? 'selected' : ''}`}
-                          onClick={() => {
-                            const newCountries = new Set(selectedCountries)
-                            if (newCountries.has(country)) {
-                              newCountries.delete(country)
-                            } else {
-                              newCountries.add(country)
-                            }
-                            setSelectedCountries(newCountries)
-                          }}
-                        >
-                          <span>{country}</span>
-                          {selectedCountries.has(country) && <span className="checkmark">✓</span>}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="dropdown-item no-results">No countries found</div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Cities Search Dropdown */}
-            <div className="filter-section">
-              <label className="filter-label">Cities</label>
-              <div className="search-dropdown-container">
-                <div className="search-input-wrapper">
-                  <FaSearch className="search-icon" />
-                  <input
-                    type="text"
-                    placeholder="Search cities..."
-                    value={citySearch}
-                    onChange={(e) => setCitySearch(e.target.value)}
-                    onFocus={() => setShowCityDropdown(true)}
-                    className="search-dropdown-input"
-                  />
-                  {citySearch && (
-                    <button 
-                      onClick={() => setCitySearch("")}
-                      className="clear-search-btn"
-                    >
-                      <FaTimes />
-                    </button>
-                  )}
-                  <button 
-                    className="dropdown-toggle"
-                    onClick={() => setShowCityDropdown(!showCityDropdown)}
-                  >
-                    <FaChevronDown />
+                </span>
+              ))}
+              {Array.from(tempCities).map(city => (
+                <span key={city} className="filter-chip temp">
+                  {city}
+                  <button onClick={() => toggleTempCity(city)} className="remove-filter">
+                    ×
                   </button>
-                </div>
-                
-                {showCityDropdown && (
-                  <div className="dropdown-list">
-                    {filteredCities.length > 0 ? (
-                      filteredCities.map((city) => (
-                        <div
-                          key={city}
-                          className={`dropdown-item ${selectedCities.has(city) ? 'selected' : ''}`}
-                          onClick={() => {
-                            const newCities = new Set(selectedCities)
-                            if (newCities.has(city)) {
-                              newCities.delete(city)
-                            } else {
-                              newCities.add(city)
-                            }
-                            setSelectedCities(newCities)
-                          }}
-                        >
-                          <span>{city}</span>
-                          {selectedCities.has(city) && <span className="checkmark">✓</span>}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="dropdown-item no-results">No cities found</div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Types Search Dropdown */}
-            <div className="filter-section">
-              <label className="filter-label">Story Types</label>
-              <div className="search-dropdown-container">
-                <div className="search-input-wrapper">
-                  <FaSearch className="search-icon" />
-                  <input
-                    type="text"
-                    placeholder="Search types..."
-                    value={typeSearch}
-                    onChange={(e) => setTypeSearch(e.target.value)}
-                    onFocus={() => setShowTypeDropdown(true)}
-                    className="search-dropdown-input"
-                  />
-                  {typeSearch && (
-                    <button 
-                      onClick={() => setTypeSearch("")}
-                      className="clear-search-btn"
-                    >
-                      <FaTimes />
-                    </button>
-                  )}
-                  <button 
-                    className="dropdown-toggle"
-                    onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                  >
-                    <FaChevronDown />
+                </span>
+              ))}
+              {Array.from(tempTypes).map(type => (
+                <span key={type} className="filter-chip temp">
+                  {type}
+                  <button onClick={() => toggleTempType(type)} className="remove-filter">
+                    ×
                   </button>
-                </div>
-                
-                {showTypeDropdown && (
-                  <div className="dropdown-list">
-                    {filteredTypes.length > 0 ? (
-                      filteredTypes.map((type) => (
-                        <div
-                          key={type}
-                          className={`dropdown-item ${selectedTypes.has(type) ? 'selected' : ''}`}
-                          onClick={() => {
-                            const newTypes = new Set(selectedTypes)
-                            if (newTypes.has(type)) {
-                              newTypes.delete(type)
-                            } else {
-                              newTypes.add(type)
-                            }
-                            setSelectedTypes(newTypes)
-                          }}
-                        >
-                          <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
-                          {selectedTypes.has(type) && <span className="checkmark">✓</span>}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="dropdown-item no-results">No types found</div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="filter-actions">
-              <button 
-                className="reset-filter-btn"
-                onClick={() => {
-                  setSelectedCountries(new Set())
-                  setSelectedCities(new Set())
-                  setSelectedTypes(new Set())
-                  setCountrySearch("")
-                  setCitySearch("")
-                  setTypeSearch("")
-                }}
-              >
-                Reset All
-              </button>
-              <button 
-                className="apply-filter-btn"
-                onClick={() => {
-                  setShowFilterModal(false)
-                  setShowCountryDropdown(false)
-                  setShowCityDropdown(false)
-                  setShowTypeDropdown(false)
-                }}
-              >
-                Apply Filters
-              </button>
+                </span>
+              ))}
             </div>
           </div>
+        )}
+
+        {/* Country Filter */}
+        <div className="filter-block">
+          <label>Country</label>
+          <div className="search-box">
+            <FaSearch />
+            <input
+              placeholder="Search country..."
+              value={countrySearch}
+              onChange={e => setCountrySearch(e.target.value)}
+            />
+          </div>
+          <div className="filter-list">
+            {availableCountries
+              .filter(country => 
+                country.toLowerCase().includes(countrySearch.toLowerCase())
+              )
+              .map(country => (
+                <div
+                  key={country}
+                  className={`filter-item ${tempCountries.has(country) ? "active" : ""}`}
+                  onClick={() => toggleTempCountry(country)}
+                >
+                  {country}
+                  {tempCountries.has(country) && <span className="checkmark">✓</span>}
+                </div>
+              ))}
+          </div>
         </div>
-      )}
 
-      {/* Feed */}
+        {/* City Filter */}
+        <div className="filter-block">
+          <label>City</label>
+          <div className="search-box">
+            <FaSearch />
+            <input
+              placeholder="Search city..."
+              value={citySearch}
+              onChange={e => setCitySearch(e.target.value)}
+            />
+          </div>
+          <div className="filter-list">
+            {availableCities
+              .filter(city => 
+                city.toLowerCase().includes(citySearch.toLowerCase())
+              )
+              .map(city => (
+                <div
+                  key={city}
+                  className={`filter-item ${tempCities.has(city) ? "active" : ""}`}
+                  onClick={() => toggleTempCity(city)}
+                >
+                  {city}
+                  {tempCities.has(city) && <span className="checkmark">✓</span>}
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* Type Filter */}
+        <div className="filter-block">
+          <label>Type</label>
+          <div className="search-box">
+            <FaSearch />
+            <input
+              placeholder="Search type..."
+              value={typeSearch}
+              onChange={e => setTypeSearch(e.target.value)}
+            />
+          </div>
+          <div className="filter-list">
+            {availableTypes
+              .filter(type => 
+                type.toLowerCase().includes(typeSearch.toLowerCase())
+              )
+              .map(type => (
+                <div
+                  key={type}
+                  className={`filter-item ${tempTypes.has(type) ? "active" : ""}`}
+                  onClick={() => toggleTempType(type)}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                  {tempTypes.has(type) && <span className="checkmark">✓</span>}
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <div className="filter-actions">
+          <button 
+            className="reset-btn" 
+            onClick={resetFilters}
+            disabled={tempCountries.size === 0 && tempCities.size === 0 && tempTypes.size === 0}
+          >
+            Clear Selection
+          </button>
+          <button 
+            className="apply-btn" 
+            onClick={applyFilters}
+            disabled={tempCountries.size === 0 && tempCities.size === 0 && tempTypes.size === 0}
+          >
+            {refreshing ? 'Applying...' : 'Apply Filters'}
+          </button>
+        </div>
+      </aside>
+
+      {/* FEED */}
       <main className="ig-feed">
-        {displayStories.map((story) => {
-          const isLiked = likedStories.has(story.id)
-          const isSaved = savedStories.has(story.id)
+        {/* Refresh Indicator */}
+        {refreshing && (
+          <div className="refresh-indicator">
+            <div className="spinner"></div>
+            Refreshing stories...
+          </div>
+        )}
 
-          const handleStoryClick = (e) => {
-            // Don't navigate if clicking on action buttons
-            if (e.target.closest('button')) {
-              return
-            }
-            navigate(`/stories/${story.id}`)
-          }
+        {filteredStories.length > 0 ? (
+          filteredStories.map((story, i) => {
+            const isLiked = likedStories.has(story.id)
+            const isSaved = savedStories.has(story.id)
 
-          return (
-            <article 
-              key={story.id} 
-              className="ig-post"
-              onClick={handleStoryClick}
-              style={{ cursor: 'pointer' }}
-            >
-              {/* Post Header */}
-              <div className="ig-post-header">
-                <div className="ig-user">
-                  <div className="ig-avatar">{story.user?.name?.charAt(0).toUpperCase() || "A"}</div>
+            return (
+              <article
+                key={story.id}
+                ref={i === filteredStories.length - 1 ? lastStoryRef : null}
+                className="ig-post clickable-card"
+                onClick={() => navigate(`/stories/${story.id}`)}
+              >
+                <div className="ig-post-header">
+                  <div className="ig-avatar">
+                    {story.user?.name?.[0]?.toUpperCase() || "A"}
+                  </div>
                   <div>
                     <p className="ig-username">{story.user?.name || "Anonymous"}</p>
-                    <p className="ig-location">{story.location}</p>
+                    <p className="ig-location">{story.location || "Unknown location"}</p>
                   </div>
                 </div>
-              </div>
 
-              {/* Image */}
-              <div className="ig-image-wrapper">
-                <img src={story.image || "https://via.placeholder.com/600"} alt={story.title} />
-              </div>
+                <img 
+                  src={story.image || "https://via.placeholder.com/600"} 
+                  alt={story.title || "Story"} 
+                  loading="lazy" 
+                  className="story-image"
+                />
 
-              {/* Actions */}
-              <div className="ig-actions">
-                <button onClick={() => handleLike(story.id, isLiked)}>
-                  {isLiked ? <FaHeart className="liked" /> : <FaRegHeart />}
-                </button>
+                <div className="ig-actions" onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    onClick={(e) => handleLike(e, story.id, isLiked)} 
+                    title={isLiked ? "Unlike" : "Like"}
+                    className="action-btn"
+                  >
+                    {isLiked ? <FaHeart className="liked" /> : <FaRegHeart />}
+                  </button>
+                  <button 
+                    onClick={(e) => handleSave(e, story.id, isSaved)} 
+                    title={isSaved ? "Unsave" : "Save"}
+                    className="action-btn"
+                  >
+                    {isSaved ? <FaBookmark className="saved" /> : <FaRegBookmark />}
+                  </button>
+                </div>
 
-                <button onClick={() => handleSave(story.id, isSaved)}>
-                  {isSaved ? <FaBookmark className="saved" /> : <FaRegBookmark />}
-                </button>
-              </div>
+                <div className="ig-caption">
+                  <span className="username-bold">{story.user?.name || "Anonymous"}</span> 
+                  {story.content?.substring(0, 150) || "No description..."}
+                  {story.content?.length > 150 && "..."}
+                </div>
+              </article>
+            )
+          })
+        ) : (
+          <div className="no-stories">
+            <div className="no-stories-icon">📭</div>
+            <p className="no-stories-title">No stories found</p>
+            <p className="no-stories-text">
+              {(selectedCountries.size > 0 || selectedCities.size > 0 || selectedTypes.size > 0)
+                ? "No stories match your filters. Try adjusting them."
+                : "No stories available at the moment"}
+            </p>
+            {(selectedCountries.size > 0 || selectedCities.size > 0 || selectedTypes.size > 0) && (
+              <button
+                className="reset-btn-inline"
+                onClick={clearAllAppliedFilters}
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
+        )}
 
-              {/* Caption */}
-              <div className="ig-caption">
-                <span>{story.user?.name}</span> {story.content}
-              </div>
-            </article>
-          )
-        })}
+        {loading && !refreshing && <div className="ig-loading">Loading more stories...</div>}
       </main>
-
-      {/* Pagination */}
-      {totalPages > 1 && selectedCountries.size === 0 && selectedCities.size === 0 && selectedTypes.size === 0 && (
-        <div className="ig-pagination">
-          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
-            ← Prev
-          </button>
-
-          <span>
-            {currentPage} / {totalPages}
-          </span>
-
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Next →
-          </button>
-        </div>
-      )}
     </div>
   )
 }
