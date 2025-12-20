@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
-import { FiMenu, FiX } from 'react-icons/fi';
 import { 
   FaMapMarkerAlt, 
   FaCompass, 
@@ -9,7 +8,9 @@ import {
   FaSuitcase, 
   FaUserCircle,
   FaSignInAlt,
-  FaUserPlus
+  FaUserPlus,
+  FaPlus,
+  FaSignOutAlt
 } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import './PillNav.css';
@@ -19,12 +20,12 @@ const navIcons = {
   'Home': <FaMapMarkerAlt className="nav-icon" />,
   'Dashboard': <FaCompass className="nav-icon" />,
   'Stories': <FaBookOpen className="nav-icon" />,
-  'Packing': <FaSuitcase className="nav-icon" />,
+
   'Profile': <FaUserCircle className="nav-icon" />
 };
 
 const PillNav = ({
-  logo,
+  logo = '✈️',
   logoAlt = 'Logo',
   className = '',
   showIcons = true,
@@ -33,15 +34,18 @@ const PillNav = ({
   onSignupClick = () => {}
 }) => {
   // Get current user from auth context
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
+  
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef(null);
   
   // Navigation items based on authentication status
   const navItems = [
     { label: 'Home', href: '/', show: true },
     { label: 'Dashboard', href: '/dashboard', show: !!currentUser },
     { label: 'Stories', href: '/stories', show: !!currentUser },
-    { label: 'Packing', href: '/packing', show: !!currentUser },
-    { label: 'Profile', href: '/profile', show: !!currentUser }
+
   ].filter(item => item.show);
   const [hoveredItem, setHoveredItem] = useState(null);
   const pillRef = useRef(null);
@@ -100,14 +104,26 @@ const PillNav = ({
       ease: 'power2.out',
       duration: 0.4,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeItem, hoveredItem, navItems, location]);
 
   const handleMouseEnter = (item) => {
+    if (item.href === '/profile') {
+      setShowProfileMenu(true);
+    }
     setHoveredItem(item.href);
   };
 
   const handleMouseLeave = () => {
+    setShowProfileMenu(false);
     setHoveredItem(null);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setShowProfileMenu(false);
+    setIsMenuOpen(false);
+    navigate('/');
   };
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -135,29 +151,30 @@ const PillNav = ({
   };
 
   return (
-    <>
+    <div className='NavBar'>
       <nav className={`pill-nav ${className} ${isMenuOpen ? 'menu-open' : ''}`} ref={navRef}>
         <div className="pill-nav-container">
           <div className="pill-nav-logo">
             <Link to="/" className="logo-link" onClick={() => setIsMenuOpen(false)}>
-              <img src={logo} alt={logoAlt} className="logo-img" />
+              
               <span className="logo-text">TravelJournal</span>
             </Link>
           </div>
           
           <div className="pill-nav-content">
             <div className="pill-nav-items" ref={navItemsRef}>
-              <div className="pill-nav-pill" ref={pillRef} />
-              {navItems.map((item) => {
+              
+               {navItems.map((item) => {
                 const isItemActive = isActive(item.href);
+                
                 return (
                   <Link
                     key={item.href}
                     to={item.href}
                     className={`pill-nav-item ${isItemActive ? 'active' : ''}`}
                     data-href={item.href}
-                    onMouseEnter={() => setHoveredItem(item.href)}
-                    onMouseLeave={() => setHoveredItem(null)}
+                    onMouseEnter={() => handleMouseEnter(item)}
+                    onMouseLeave={handleMouseLeave}
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {showIcons && navIcons[item.label]}
@@ -166,6 +183,65 @@ const PillNav = ({
                   </Link>
                 );
               })}
+              
+              {/* User Profile Button */}
+              {currentUser && (
+                <div
+                  className="profile-menu-wrapper"
+                  ref={profileMenuRef}
+                  onMouseEnter={() => {
+                    setShowProfileMenu(true);
+                    setHoveredItem('profile');
+                  }}
+                  onMouseLeave={() => {
+                    setShowProfileMenu(false);
+                    setHoveredItem(null);
+                  }}
+                >
+                  <button
+                    className="pill-nav-item profile-btn"
+                    title={currentUser.name}
+                  >
+                    <FaUserCircle className="profile-icon" />
+                    <span className="nav-item-text">{currentUser.name?.split(' ')[0]}</span>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showProfileMenu && (
+                    <div className="profile-dropdown">
+                      <Link
+                        to="/dashboard"
+                        className="dropdown-item"
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        <FaCompass className="dropdown-icon" />
+                        Go to Dashboard
+                      </Link>
+                      <Link
+                        to="/stories/create"
+                        className="dropdown-item"
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        <FaPlus className="dropdown-icon" />
+                        Add Story
+                      </Link>
+                      <button
+                        className="dropdown-item logout-btn"
+                        onClick={handleLogout}
+                      >
+                        <FaSignOutAlt className="dropdown-icon" />
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {showAuthButtons && !currentUser && (
@@ -182,19 +258,13 @@ const PillNav = ({
             )}
           </div>
 
-          <button 
-            className="mobile-menu-toggle" 
-            onClick={toggleMenu}
-            aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
-          >
-            {isMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-          </button>
+          
         </div>
       </nav>
       {isMenuOpen && (
         <div className="mobile-menu-overlay" onClick={toggleMenu} />
       )}
-    </>
+    </div>
   );
 };
 

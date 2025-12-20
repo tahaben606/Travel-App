@@ -3,19 +3,20 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { StoriesProvider } from './context/StoriesContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import Header from './components/Header';
 
 // Pages
 import Landing from './pages/landing';
-import Auth from './pages/Auth';
+import Navbar from './components/PillNav';
 import Dashboard from './pages/Dashboard';
-import StoryForm from './pages/StoryForm';
 import StoryDetail from './pages/StoryDetail';
 import StoriesList from './pages/StoriesList';
-import PackingLists from './pages/PackingLists';
-import Features from './pages/Features';
-import Pricing from './pages/Pricing';
+import CreateStory from './pages/CreateStory';
 import About from './pages/About';
+import Signup from './pages/Signup';
+import Login from './pages/Login';
+import StoriesFeed from './components/StoriesFeed';
+import Profile from './pages/Profile';
+
 
 // Styles
 import './App.css';
@@ -26,15 +27,13 @@ function App() {
     <AuthProvider>
       <StoriesProvider>
         <Router>
+          <Navbar />
           <div className="App">
             <Toaster position="top-right" />
-            <Header />
             <Routes>
               <Route path="/" element={<Landing />} />
-              <Route path="/login" element={<Auth />} />
-              <Route path="/signup" element={<Auth />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
               <Route path="/about" element={<About />} />
               <Route
                 path="/dashboard"
@@ -47,41 +46,35 @@ function App() {
               {/* Stories Routes */}
               <Route 
                 path="/stories" 
-                element={
-                  <ProtectedRoute>
-                    <StoriesList />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route
-                path="/stories/new"
-                element={
-                  <ProtectedRoute>
-                    <StoryForm />
-                  </ProtectedRoute>
-                }
+                element={<StoriesList />}
               />
               <Route
                 path="/stories/:id"
+                element={<StoryDetail />}
+              />
+              <Route
+                path="/stories/create"
                 element={
                   <ProtectedRoute>
-                    <StoryDetail />
+                    <CreateStory />
                   </ProtectedRoute>
                 }
               />
+              {/* Instagram Feed Route */}
               <Route
-                path="/stories/:id/edit"
+                path="/feed"
                 element={
                   <ProtectedRoute>
-                    <StoryForm editMode={true} />
+                    <StoriesFeed />
                   </ProtectedRoute>
                 }
               />
+              {/* Profile Route */}
               <Route
-                path="/packing"
+                path="/profile"
                 element={
                   <ProtectedRoute>
-                    <PackingLists />
+                    <Profile />
                   </ProtectedRoute>
                 }
               />
@@ -91,7 +84,7 @@ function App() {
         </Router>
       </StoriesProvider>
     </AuthProvider>
-  );
+  )
 }
 
 export default App;

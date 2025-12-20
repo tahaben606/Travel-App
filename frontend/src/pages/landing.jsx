@@ -1,30 +1,19 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiArrowRight, FiCheck, FiMapPin, FiCalendar, FiUsers } from 'react-icons/fi';
-import { FaQuoteLeft, FaStar, FaCompass, FaBookOpen, FaSuitcase, FaUserCircle } from 'react-icons/fa';
-import { useAuth } from '../context/AuthContext';
-import PillNav from '../components/PillNav';
-import '../styles/landing.css';
-
-// Logo placeholder
-const logo = 'https://via.placeholder.com/40x40/00BCD4/FFFFFF?text=TJ';
+import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import heroImage from "../components/pexels-muharrem-alper-428087426-35254743.jpg"
+import "../styles/landing.css"
 
 const LandingPage = () => {
   const [activeTab, setActiveTab] = useState("features")
   const [hoveredPin, setHoveredPin] = useState(null)
-  const [isScrolled, setIsScrolled] = useState(false)
   const [email, setEmail] = useState("")
   const [emailSubmitted, setEmailSubmitted] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
 
-  const navigate = useNavigate();
-
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50)
       const scrollTop = window.scrollY
       const docHeight = document.documentElement.scrollHeight - window.innerHeight
       const scrollPercent = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0
@@ -78,21 +67,21 @@ const LandingPage = () => {
       name: "Maya Rodriguez",
       role: "Travel Blogger",
       text: "This app transformed how I document trips! The timeline feature is genius.",
-      avatar: "MR",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
       color: "#FFD166",
     },
     {
       name: "Alex Chen",
       role: "Adventure Photographer",
       text: "As a solo traveler, this journal helps organize memories perfectly.",
-      avatar: "AC",
+      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
       color: "#06D6A0",
     },
     {
       name: "Sam Wilson",
       role: "Digital Nomad",
       text: "My Japan travel journal is my most prized digital possession!",
-      avatar: "SW",
+      image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop",
       color: "#7B68EE",
     },
   ]
@@ -127,69 +116,29 @@ const LandingPage = () => {
     },
   ]
 
-  // Handle login button click
-  const handleLoginClick = () => navigate('/login');
-  const handleSignupClick = () => navigate('/signup');
-
-  // Handle navigation to sections
-  const scrollToSection = (e, sectionId) => {
-    e.preventDefault();
-    const element = document.querySelector(sectionId);
-    if (element) {
-      window.scrollTo({
-        top: element.offsetTop - 80, // Account for fixed header
-        behavior: 'smooth'
-      });
-    }
-  };
-
   return (
     <div className="landing-page">
-      <PillNav
-        logo={logo}
-        logoAlt="Travel Journal Logo"
-        className={isScrolled ? 'scrolled' : ''}
-        onLoginClick={handleLoginClick}
-        onSignupClick={handleSignupClick}
-      />
-      {/* Animated Background Elements */}
-      <div className="bg-elements">
-        {[...Array(8)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="bg-shape"
-            animate={{
-              y: [0, -100, 0],
-              rotate: [0, 180, 360],
-            }}
-            transition={{
-              duration: 15 + Math.random() * 10,
-              repeat: Number.POSITIVE_INFINITY,
-              ease: "linear",
-            }}
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              background: i % 3 === 0 ? "var(--yellow)" : i % 3 === 1 ? "var(--cyan)" : "var(--white)",
-              opacity: 0.1,
-              width: `${20 + Math.random() * 80}px`,
-              height: `${20 + Math.random() * 80}px`,
-              borderRadius: Math.random() > 0.7 ? "50%" : "12px",
-              border: i % 2 === 0 ? "2px solid var(--black)" : "none",
-            }}
-          />
-        ))}
-      </div>
 
-      {/* Navigation Progress */}
-      <div className={`nav-progress ${isScrolled ? "visible" : ""}`}>
+      {/* Background Animated Shapes */}
+
+      {/* Scroll Progress */}
+      <div className="nav-progress">
         <div className="progress-track">
           <div className="progress-fill" style={{ width: `${scrollProgress}%` }} />
         </div>
       </div>
 
-      {/* Hero Section */}
+      {/* HERO SECTION */}
       <section className="hero-section">
+        <div className="hero-bg">
+          <img
+            src={heroImage}
+            alt="Travel journey background"
+            className="hero-bg-image"
+          />
+          <div className="hero-bg-overlay"></div>
+        </div>
+
         <div className="container">
           <motion.div
             className="hero-content"
@@ -197,21 +146,14 @@ const LandingPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="hero-badge">
-              <span>✨ NEW GENERATION TRAVEL JOURNAL</span>
-            </div>
-
-            <h1 className="hero-title">
-              <span className="title-line">Document Your Journey.</span>
-              <span className="title-line accent">Relive Every Step.</span>
-            </h1>
+            <h1 className="hero-title">Document Your Journey.</h1>
 
             <p className="hero-subtitle">
               Capture memories with photos, maps & timelines — your adventure, beautifully preserved in a modern travel
               journal.
             </p>
 
-            {/* Signup / Login buttons removed per request */}
+
 
             <div className="hero-stats">
               {[
@@ -231,11 +173,17 @@ const LandingPage = () => {
                 </motion.div>
               ))}
             </div>
+                        <div className="hero-actions">
+              <motion.button className="btn btn-primary" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                Start Your Journey
+              </motion.button>
+
+            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* FEATURES SECTION */}
       <section className="features-section">
         <div className="container">
           <div className="section-header">
@@ -254,6 +202,9 @@ const LandingPage = () => {
                 transition={{ delay: idx * 0.1 }}
                 whileHover={{ y: -10 }}
               >
+                <div className="feature-image">
+                  <img src={feature.image || feature.image} alt={feature.title} />
+                </div>
                 <div className="feature-icon" style={{ backgroundColor: feature.color }}>
                   {feature.icon()}
                 </div>
@@ -266,7 +217,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
+      {/* TESTIMONIALS */}
       <section className="testimonials-section">
         <div className="container">
           <div className="section-header">
@@ -283,11 +234,8 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                whileHover={{ y: -5 }}
               >
-                <div className="testimonial-avatar" style={{ backgroundColor: testimonial.color }}>
-                  {testimonial.avatar}
-                </div>
+                <img src={testimonial.image} alt={testimonial.name} className="testimonial-image" />
                 <div className="testimonial-quote">"{testimonial.text}"</div>
                 <div className="testimonial-info">
                   <div className="testimonial-name">{testimonial.name}</div>
@@ -299,7 +247,41 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
+      {/* GALLERY */}
+      <section className="gallery-section">
+        <div className="container">
+          <div className="section-header">
+            <h2 className="section-title">Inspiration Gallery</h2>
+            <p className="section-subtitle">Real journeys from our community</p>
+          </div>
+
+          <div className="gallery-grid">
+            {[
+              "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500&h=400&fit=crop",
+              "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&h=400&fit=crop",
+              "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&h=400&fit=crop",
+              "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=500&h=400&fit=crop",
+              "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=500&h=400&fit=crop",
+              "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&h=400&fit=crop",
+            ].map((image, idx) => (
+              <motion.div
+                key={idx}
+                className="gallery-item"
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.05 }}
+                whileHover={{ scale: 1.05, zIndex: 10 }}
+              >
+                <img src={image} alt="" />
+                <div className="gallery-overlay">View Story →</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING */}
       <section className="pricing-section">
         <div className="container">
           <div className="section-header">
@@ -316,7 +298,6 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                whileHover={{ y: -10 }}
               >
                 {plan.popular && <div className="popular-badge">⭐ MOST POPULAR</div>}
 
@@ -329,28 +310,48 @@ const LandingPage = () => {
                 <ul className="pricing-features">
                   {plan.features.map((feature, fIdx) => (
                     <li key={fIdx}>
-                      <span>✓</span>
-                      {feature}
+                      <span>✓</span> {feature}
                     </li>
                   ))}
                 </ul>
 
-                <button
+                <motion.button
                   className={`btn btn-full ${plan.popular ? "btn-primary" : "btn-outline"}`}
-                  style={{ backgroundColor: plan.popular ? plan.color : "transparent" }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   {plan.cta}
-                </button>
+                </motion.button>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
+      {/* CTA */}
+      <section className="cta-section">
+        <div className="container">
+          <motion.div
+            className="cta-content"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2>Ready to start documenting?</h2>
+            <p>Join thousands of travelers preserving their adventures</p>
+
+            <motion.button className="btn btn-primary btn-lg" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              Get Started Free
+            </motion.button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
       <footer className="footer-section">
         <div className="container">
           <div className="footer-content">
+
             <div className="footer-brand">
               <div className="brand-name">✈️ TRAVEL STORY JOURNAL</div>
               <p className="brand-tagline">Made for explorers, by explorers.</p>
@@ -377,6 +378,7 @@ const LandingPage = () => {
 
               <div className="footer-column">
                 <h4>Connect</h4>
+
                 <div className="newsletter">
                   <form onSubmit={handleEmailSubmit}>
                     <input
@@ -388,6 +390,7 @@ const LandingPage = () => {
                     />
                     <button type="submit">→</button>
                   </form>
+
                   <AnimatePresence>
                     {emailSubmitted && (
                       <motion.div
@@ -401,6 +404,7 @@ const LandingPage = () => {
                     )}
                   </AnimatePresence>
                 </div>
+
               </div>
             </div>
 
@@ -412,6 +416,7 @@ const LandingPage = () => {
                 <span>✨ Made with ❤️</span>
               </div>
             </div>
+
           </div>
         </div>
       </footer>

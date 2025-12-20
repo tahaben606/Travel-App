@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }) => {
     // Store in localStorage for persistence
     if (authToken) {
       localStorage.setItem('auth_token', authToken);
+      localStorage.setItem('token', authToken); // For backward compatibility
     }
     localStorage.setItem('user_data', JSON.stringify(userData));
   };
@@ -34,7 +35,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     // Call Laravel logout endpoint if needed
     if (token) {
-      fetch('http://localhost:8000/api/logout', {
+      fetch('http://localhost:8000/api/auth/logout', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -46,6 +47,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('token');
     localStorage.removeItem('user_data');
   };
 
@@ -63,11 +65,13 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    currentUser: user,
     token,
     login,
     logout,
     isAuthenticated: !!user && !!token,
     authFetch, // Helper for authenticated requests
+    authHeader: () => token ? { 'Authorization': `Bearer ${token}` } : {},
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

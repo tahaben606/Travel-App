@@ -1,0 +1,70 @@
+{
+  "locations": [
+    { "c": "United States", "ct": ["New York", "Los Angeles", "Miami", "Las Vegas"] },
+    { "c": "France", "ct": ["Paris", "Nice", "Marseille"] },
+    { "c": "Italy", "ct": ["Rome", "Milan", "Venice", "Florence"] },
+    { "c": "Spain", "ct": ["Barcelona", "Madrid", "Seville"] },
+    { "c": "United Kingdom", "ct": ["London", "Manchester", "Edinburgh"] },
+
+    { "c": "Morocco", "ct": ["Marrakech", "Casablanca", "Fez", "Rabat"] },
+    { "c": "Egypt", "ct": ["Cairo", "Alexandria", "Luxor"] },
+    { "c": "Turkey", "ct": ["Istanbul", "Antalya", "Cappadocia"] },
+    { "c": "United Arab Emirates", "ct": ["Dubai", "Abu Dhabi"] },
+    { "c": "Tunisia", "ct": ["Tunis", "Sousse", "Djerba"] },
+
+    { "c": "Japan", "ct": ["Tokyo", "Osaka", "Kyoto"] },
+    { "c": "Thailand", "ct": ["Bangkok", "Phuket", "Chiang Mai"] },
+    { "c": "Indonesia", "ct": ["Bali", "Jakarta"] },
+    { "c": "Vietnam", "ct": ["Hanoi", "Ho Chi Minh City", "Da Nang"] },
+    { "c": "South Korea", "ct": ["Seoul", "Busan"] },
+
+    { "c": "Germany", "ct": ["Berlin", "Munich", "Hamburg"] },
+    { "c": "Netherlands", "ct": ["Amsterdam", "Rotterdam"] },
+    { "c": "Switzerland", "ct": ["Zurich", "Geneva", "Lucerne"] },
+    { "c": "Austria", "ct": ["Vienna", "Salzburg"] },
+    { "c": "Portugal", "ct": ["Lisbon", "Porto"] },
+
+    { "c": "Brazil", "ct": ["Rio de Janeiro", "São Paulo"] },
+    { "c": "Argentina", "ct": ["Buenos Aires", "Mendoza"] },
+    { "c": "Mexico", "ct": ["Mexico City", "Cancún", "Guadalajara"] },
+    { "c": "Colombia", "ct": ["Bogotá", "Medellín", "Cartagena"] },
+    { "c": "Peru", "ct": ["Lima", "Cusco"] },
+
+    { "c": "Canada", "ct": ["Toronto", "Vancouver", "Montreal"] },
+    { "c": "Australia", "ct": ["Sydney", "Melbourne", "Brisbane"] },
+    { "c": "New Zealand", "ct": ["Auckland", "Queenstown"] },
+    { "c": "South Africa", "ct": ["Cape Town", "Johannesburg"] },
+    { "c": "Kenya", "ct": ["Nairobi", "Mombasa"] },
+
+    { "c": "India", "ct": ["Delhi", "Mumbai", "Jaipur"] },
+    { "c": "China", "ct": ["Beijing", "Shanghai", "Hong Kong"] },
+    { "c": "Russia", "ct": ["Moscow", "Saint Petersburg"] },
+    { "c": "Greece", "ct": ["Athens", "Santorini"] },
+    { "c": "Croatia", "ct": ["Dubrovnik", "Split"] },
+
+    { "c": "Czech Republic", "ct": ["Prague"] },
+    { "c": "Hungary", "ct": ["Budapest"] },
+    { "c": "Belgium", "ct": ["Brussels", "Bruges"] },
+    { "c": "Sweden", "ct": ["Stockholm"] },
+    { "c": "Norway", "ct": ["Oslo", "Bergen"] },
+
+    { "c": "Qatar", "ct": ["Doha"] },
+    { "c": "Saudi Arabia", "ct": ["Riyadh", "Jeddah", "Medina"] },
+    { "c": "Jordan", "ct": ["Amman", "Petra"] },
+    { "c": "Indonesia", "ct": ["Bali", "Jakarta"] },
+    { "c": "Philippines", "ct": ["Manila", "Cebu", "Boracay"] }
+  ]
+,
+
+  "types": [
+    "restaurant",
+    "hotel",
+    "monument",
+    "museum",
+    "park",
+    "beach",
+    "mountain",
+    "city",
+    "other"
+  ]
+}

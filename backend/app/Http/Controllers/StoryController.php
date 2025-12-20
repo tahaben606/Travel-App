@@ -35,22 +35,32 @@ class StoryController extends Controller
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'imageUrl' => 'nullable|url',
             'location' => 'nullable|string|max:255',
+            'type' => 'nullable|in:restaurant,hotel,monument,museum,park,beach,mountain,city,other',
             'is_published' => 'boolean',
         ]);
 
         $imagePath = null;
+        
+        // Handle file upload first (takes priority over URL)
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('stories', 'public');
+        } 
+        // Handle image URL as fallback
+        elseif (!empty($validated['imageUrl'])) {
+            $imagePath = $validated['imageUrl'];
         }
 
         $story = new Story([
             'title' => $validated['title'],
             'content' => $validated['content'],
             'location' => $validated['location'] ?? null,
+            'type' => $validated['type'] ?? 'other',
             'image' => $imagePath,
             'is_published' => $validated['is_published'] ?? false,
             'published_at' => ($validated['is_published'] ?? false) ? now() : null,
+            'views' => 0,
         ]);
 
         $story->user()->associate(Auth::user());
@@ -95,16 +105,25 @@ class StoryController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'content' => 'sometimes|required|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'imageUrl' => 'nullable|url',
             'location' => 'nullable|string|max:255',
+            'type' => 'nullable|in:restaurant,hotel,monument,museum,park,beach,mountain,city,other',
             'is_published' => 'sometimes|boolean',
         ]);
 
         if ($request->hasFile('image')) {
-            // Delete old image if exists
-            if ($story->image) {
+            // Delete old image if exists and it's a local file
+            if ($story->image && strpos($story->image, 'http') === false) {
                 Storage::disk('public')->delete($story->image);
             }
             $validated['image'] = $request->file('image')->store('stories', 'public');
+        } elseif (!empty($validated['imageUrl'])) {
+            // Handle image URL
+            if ($story->image && strpos($story->image, 'http') === false) {
+                Storage::disk('public')->delete($story->image);
+            }
+            $validated['image'] = $validated['imageUrl'];
+            unset($validated['imageUrl']);
         }
 
         // Update published_at if is_published is being set to true
@@ -144,5 +163,143 @@ class StoryController extends Controller
         return response()->json([
             'message' => 'Story deleted successfully.'
         ], 204);
+    }
+
+    /**
+     * Like a story.
+     */
+    public function like($id)
+    {
+        $story = Story::findOrFail($id);
+        $user = Auth::user();
+
+        if ($user->likedStories()->where('story_id', $story->id)->exists()) {
+            return response()->json([
+                'message' => 'Story already liked.'
+            ], 400);
+        }
+
+        $user->likedStories()->attach($story->id);
+
+        return response()->json([
+            'message' => 'Story liked successfully.',
+            'likes_count' => $story->likedBy()->count()
+        ], 201);
+    }
+
+    /**
+     * Unlike a story.
+     */
+    public function unlike($id)
+    {
+        $story = Story::findOrFail($id);
+        $user = Auth::user();
+
+        $user->likedStories()->detach($story->id);
+
+        return response()->json([
+            'message' => 'Story unliked successfully.',
+            'likes_count' => $story->likedBy()->count()
+        ]);
+    }
+
+    /**
+     * Save a story.
+     */
+    public function save($id)
+    {
+        $story = Story::findOrFail($id);
+        $user = Auth::user();
+
+        if ($user->savedStories()->where('story_id', $story->id)->exists()) {
+            return response()->json([
+                'message' => 'Story already saved.'
+            ], 400);
+        }
+
+        $user->savedStories()->attach($story->id);
+
+        return response()->json([
+            'message' => 'Story saved successfully.',
+            'saves_count' => $story->savedBy()->count()
+        ], 201);
+    }
+
+    /**
+     * Unsave a story.
+     */
+    public function unsave($id)
+    {
+        $story = Story::findOrFail($id);
+        $user = Auth::user();
+
+        $user->savedStories()->detach($story->id);
+
+        return response()->json([
+            'message' => 'Story unsaved successfully.',
+            'saves_count' => $story->savedBy()->count()
+        ]);
+    }
+
+    /**
+     * Get user's liked stories.
+     */
+    public function likedStories()
+    {
+        $stories = Auth::user()->likedStories()
+            ->with('user')
+            ->latest('likes.created_at')
+            ->paginate(10);
+
+        return response()->json([
+            'stories' => $stories,
+            'message' => 'Liked stories retrieved successfully.'
+        ]);
+    }
+
+    /**
+     * Get user's saved stories.
+     */
+    public function savedStories()
+    {
+        $stories = Auth::user()->savedStories()
+            ->with('user')
+            ->latest('saves.created_at')
+            ->paginate(10);
+
+        return response()->json([
+            'stories' => $stories,
+            'message' => 'Saved stories retrieved successfully.'
+        ]);
+    }
+
+    /**
+     * Get the authenticated user's own stories.
+     */
+    public function userStories()
+    {
+        $stories = Auth::user()->stories()
+            ->with(['user', 'likedBy', 'savedBy'])
+            ->latest('created_at')
+            ->get();
+
+        return response()->json([
+            'stories' => $stories,
+            'message' => 'User stories retrieved successfully.'
+        ]);
+    }
+
+    /**
+     * Increment view count for a story.
+     */
+    public function incrementViews($id)
+    {
+        $story = Story::findOrFail($id);
+        $story->increment('views');
+
+        return response()->json([
+            'views' => $story->views,
+            'message' => 'View count updated successfully.'
+        ]);
     }
 }

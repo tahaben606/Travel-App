@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
-import { MapPin, Mail, Lock, User } from 'lucide-react';
+import { MapPin, Mail, Lock, User, Image } from 'lucide-react';
 import toast from 'react-hot-toast';
 import '../styles/auth.css';
 
@@ -11,9 +11,24 @@ const Signup = () => {
   const [email, setEmail] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProfilePhoto(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,22 +59,25 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      // Use relative URL to avoid CORS issues during development
-      const apiUrl = '/api/auth/register';
+      // Use absolute URL to backend
+      const apiUrl = 'http://localhost:8000/api/auth/register';
       console.log('Attempting to register at:', apiUrl);
+      
+      // Create FormData to handle file upload
+      const formData = new FormData();
+      formData.append('nom', nom);
+      formData.append('email', email);
+      formData.append('mot_de_passe', motDePasse);
+      if (profilePhoto) {
+        formData.append('profile_photo', profilePhoto);
+      }
       
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          nom: nom,
-          email: email,
-          mot_de_passe: motDePasse,
-          mot_de_passe_confirmation: confirmPassword,
-        }),
+        body: formData,
       });
 
       console.log('Response status:', response.status);
@@ -83,22 +101,21 @@ const Signup = () => {
         throw new Error(data.message || `Registration failed (${response.status})`);
       }
 
-      // Your Laravel should return the created client
-      const client = data.client || data.data;
-      const token = data.token || data.access_token;
+      // Backend returns { success, token, user: { id, name, email, created_at } }
+      const user = data.user;
+      const token = data.token;
       
-      // Prepare user data matching your database structure
+      // Prepare user data 
       const userData = {
-        id_client: client.id_client,
-        nom: client.nom,
-        email: client.email,
-        date_inscription: client.date_inscription || new Date().toISOString(),
+        id: user.id,
+        name: user.name,
+        email: user.email,
       };
 
       // Store in context and localStorage
       login(userData, token);
       
-      toast.success(`Account created successfully! Welcome, ${client.nom}!`);
+      toast.success(`Account created successfully! Welcome, ${user.name}!`);
       navigate('/dashboard');
     } catch (error) {
       console.error('Full signup error:', error);
@@ -193,6 +210,40 @@ const Signup = () => {
                 minLength={6}
                 disabled={loading}
               />
+            </div>
+
+            <div className="form-group photo-upload-group">
+              <label htmlFor="profilePhoto">
+                Profile Photo (Optional)
+              </label>
+              <div className="photo-upload-wrapper">
+                {photoPreview && (
+                  <div className="photo-preview">
+                    <img src={photoPreview} alt="Profile preview" />
+                    <button
+                      type="button"
+                      className="remove-photo-btn"
+                      onClick={() => {
+                        setProfilePhoto(null);
+                        setPhotoPreview(null);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  id="profilePhoto"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  disabled={loading}
+                  className="file-input"
+                />
+                <label htmlFor="profilePhoto" className="file-input-label">
+                  {photoPreview ? 'Change Photo' : 'Choose Photo'}
+                </label>
+              </div>
             </div>
 
             <motion.button

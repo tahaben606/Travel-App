@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Story extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -22,7 +24,8 @@ class Story extends Model
         'image',
         'location',
         'published_at',
-        'is_published'
+        'is_published',
+        'views'
     ];
 
     /**
@@ -33,6 +36,7 @@ class Story extends Model
     protected $casts = [
         'published_at' => 'datetime',
         'is_published' => 'boolean',
+        'views' => 'integer',
     ];
 
     /**
@@ -41,6 +45,22 @@ class Story extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get all users who liked this story.
+     */
+    public function likedBy(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'likes');
+    }
+
+    /**
+     * Get all users who saved this story.
+     */
+    public function savedBy(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'saves');
     }
 
     /**

@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
@@ -13,35 +13,38 @@ class AuthController extends Controller
     public function signup(Request $request)
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'password' => 'required|string|min:6',
+            'nom' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email',
+            'mot_de_passe' => 'required|string|min:6',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // Check if email exists
-        $existing = DB::selectOne('SELECT id, email FROM users WHERE email = ?', [$data['email']]);
-        if ($existing) {
-            return response()->json(['message' => 'Email already taken'], 422);
+        $profilePhotoPath = null;
+        if ($request->hasFile('profile_photo')) {
+            $profilePhotoPath = $request->file('profile_photo')->store('profile_photos', 'public');
         }
 
-        $token = Str::random(60);
-        $now = now();
-        $hashed = Hash::make($data['password']);
+        // Create user using model
+        $user = User::create([
+            'name' => $data['nom'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['mot_de_passe']),
+            'profile_photo' => $profilePhotoPath,
+        ]);
 
-        // Insert user via raw SQL
-        DB::insert(
-            'INSERT INTO users (name, email, password, remember_token, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
-            [$data['name'], $data['email'], $hashed, $token, $now, $now]
-        );
-
-        $user = DB::selectOne('SELECT id, name, email, remember_token AS token FROM users WHERE email = ?', [$data['email']]);
+        // Generate Sanctum token
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'token' => $user->token,
+            'success' => true,
+            'message' => 'User registered successfully',
+            'token' => $token,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'profile_photo' => $user->profile_photo,
+                'created_at' => $user->created_at,
             ],
         ], 201);
     }
@@ -51,51 +54,67 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'email' => 'required|email',
-            'password' => 'required|string',
+            'mot_de_passe' => 'required|string',
         ]);
 
-        $user = DB::selectOne('SELECT * FROM users WHERE email = ?', [$data['email']]);
-        if (! $user || ! Hash::check($data['password'], $user->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+        // Find user by email
+        $user = User::where('email', $data['email'])->first();
+        
+        if (!$user || !Hash::check($data['mot_de_passe'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid credentials'
+            ], 401);
         }
 
-        $token = Str::random(60);
-        DB::update('UPDATE users SET remember_token = ?, updated_at = ? WHERE id = ?', [$token, now(), $user->id]);
+        // Generate Sanctum token
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
+            'success' => true,
+            'message' => 'Login successful',
             'token' => $token,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
             ],
-        ]);
+        ], 200);
     }
 
     // POST /api/auth/logout
     public function logout(Request $request)
     {
-        $auth = $request->header('Authorization', '');
-        if (str_starts_with($auth, 'Bearer ')) {
-            $token = substr($auth, 7);
-            DB::update('UPDATE users SET remember_token = NULL, updated_at = ? WHERE remember_token = ?', [now(), $token]);
-        }
-        return response()->json(['message' => 'Logged out']);
+        // Revoke the current token
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logged out successfully'
+        ], 200);
     }
 
     // GET /api/auth/me
     public function me(Request $request)
     {
-        $auth = $request->header('Authorization', '');
-        if (! str_starts_with($auth, 'Bearer ')) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
         }
-        $token = substr($auth, 7);
-        $user = DB::selectOne('SELECT id, name, email FROM users WHERE remember_token = ?', [$token]);
-        if (! $user) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
-        return response()->json(['user' => $user]);
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'created_at' => $user->created_at,
+            ],
+        ], 200);
     }
 }
 

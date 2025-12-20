@@ -44,14 +44,13 @@ const Login = () => {
         return;
       }
 
-      const client = data.client;
+      const user = data.user;
       const token = data.token;
 
       const userData = {
-        id_client: client.id_client,
-        nom: client.nom,
-        email: client.email,
-        date_inscription: client.date_inscription,
+        id: user.id,
+        name: user.name,
+        email: user.email,
       };
 
       localStorage.setItem('auth_token', token);
@@ -59,7 +58,7 @@ const Login = () => {
 
       login(userData, token);
 
-      toast.success(`Welcome back, ${client.nom}!`);
+      toast.success(`Welcome back, ${user.name}!`);
       navigate('/dashboard');
 
     } catch (error) {
